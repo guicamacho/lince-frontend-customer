@@ -1,0 +1,25 @@
+app = "lince-customer"
+primary_region = "gru"
+
+[build]
+  [build.args]
+    # Publishable key is public (inlined into the client bundle anyway).
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_Z2xvd2luZy10ZWFsLTY0LmNsZXJrLmFjY291bnRzLmRldiQ"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  LINCE_API_URL = "https://api-dev.lincefinance.xyz"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[http_service.checks]]
+  path = "/api/health"
+  interval = "15s"
+  timeout = "3s"
+  grace_period = "10s"
