@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getOnboardingState } from "@/lib/lince-api";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/top-bar";
+import { SessionTimeout } from "@/components/auth/session-timeout";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { userId } = await auth();
@@ -19,6 +20,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <Sidebar />
         <main className="flex-1 p-8">{children}</main>
       </div>
+      <SessionTimeout />
     </div>
   );
 }
