@@ -61,3 +61,40 @@ export async function advanceOnboarding(
 ): Promise<Result<OrgSnapshot>> {
   return toResult<OrgSnapshot>(await authedFetch(`/onboarding/${step}`, { method: "POST" }));
 }
+
+export interface Beneficiary {
+  id: string;
+  label: string;
+  payee_legal_name: string | null;
+  payee_country: string | null;
+  payee_bank_psp: string | null;
+  payee_account: string | null;
+  payee_memo: string | null;
+  purpose_of_payment: string | null;
+  source_of_funds: string | null;
+  status: string;
+  avenia_beneficiary_id: string | null;
+  created_at: string;
+}
+
+export async function listBeneficiaries(): Promise<Beneficiary[]> {
+  const res = await authedFetch("/app/beneficiaries");
+  if (!res.ok) return [];
+  const body = (await res.json().catch(() => ({}))) as { beneficiaries?: Beneficiary[] };
+  return body.beneficiaries ?? [];
+}
+
+export async function createBeneficiary(input: {
+  label: string;
+  payeeLegalName: string;
+  payeeCountry: string;
+  payeeBankPsp: string;
+  payeeAccount: string;
+  payeeMemo?: string;
+  purposeOfPayment: string;
+  sourceOfFunds?: string;
+}): Promise<Result<{ id: string }>> {
+  return toResult<{ id: string }>(
+    await authedFetch("/app/beneficiaries", { method: "POST", body: JSON.stringify(input) }),
+  );
+}

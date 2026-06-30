@@ -22,3 +22,17 @@ export const companySchema = z.object({
 });
 
 export type CompanyInput = z.infer<typeof companySchema>;
+
+/** Beneficiary travel-rule capture (AUSTRAC §4). Tracing info Billr retains + forwards to Avenia. */
+export const beneficiarySchema = z.object({
+  label: z.string().trim().min(1, { message: "Informe um apelido" }),
+  payeeLegalName: z.string().trim().min(1, { message: "Informe o nome legal completo" }),
+  payeeCountry: z.string().trim().min(2, { message: "Informe o país (ex.: US)" }),
+  payeeBankPsp: z.string().trim().min(1, { message: "Informe o banco / PSP" }),
+  payeeAccount: z.string().trim().min(1, { message: "Informe a conta / IBAN / carteira" }),
+  payeeMemo: z.string().trim().optional(),
+  purposeOfPayment: z.string().trim().min(1, { message: "Informe a finalidade do pagamento" }),
+  sourceOfFunds: z.string().trim().optional(),
+});
+
+export type BeneficiaryInput = z.infer<typeof beneficiarySchema>;
