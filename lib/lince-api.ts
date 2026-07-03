@@ -26,6 +26,7 @@ export interface OrgSnapshot {
   orgId: string;
   state: string;
   admissionState?: string;
+  accessStatus?: string; // optional: tolerates backends that predate migration 0002
 }
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };

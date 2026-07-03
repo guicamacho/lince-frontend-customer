@@ -23,7 +23,7 @@ export const companySchema = z.object({
 
 export type CompanyInput = z.infer<typeof companySchema>;
 
-/** Beneficiary travel-rule capture (AUSTRAC §4). Tracing info Billr retains + forwards to Avenia. */
+/** Beneficiary travel-rule capture (AUSTRAC §4). Tracing info Lince retains + forwards to Avenia. */
 export const beneficiarySchema = z.object({
   label: z.string().trim().min(1, { message: "Informe um apelido" }),
   payeeLegalName: z.string().trim().min(1, { message: "Informe o nome legal completo" }),
