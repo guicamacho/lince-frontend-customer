@@ -64,8 +64,10 @@ export async function advanceOnboarding(
 }
 
 /** Public Receita lookup (BrasilAPI, now server-side in the backend) to pre-fill signup. */
-export async function lookupCnpj(cnpj: string): Promise<Result<{ razaoSocial: string; ativa: boolean }>> {
-  return toResult<{ razaoSocial: string; ativa: boolean }>(
+export async function lookupCnpj(
+  cnpj: string,
+): Promise<Result<{ razaoSocial: string; ativa: boolean; alreadyRegistered?: boolean }>> {
+  return toResult<{ razaoSocial: string; ativa: boolean; alreadyRegistered?: boolean }>(
     await authedFetch("/onboarding/cnpj-lookup", { method: "POST", body: JSON.stringify({ cnpj }) }),
   );
 }

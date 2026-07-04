@@ -19,9 +19,20 @@ export const companySchema = z.object({
   role: z
     .string()
     .refine((v) => (OPERATOR_ROLES as readonly string[]).includes(v), { message: "Selecione um cargo" }),
+  // Versioned ToS acceptance gate (PRD-02 AC-17). The backend owns the version
+  // strings and stamps the `consent.accepted` audit row on org creation; this flag
+  // only enforces that the box was checked (re-validated server-side in bootstrapAction).
+  consentAccepted: z.literal(true, "É necessário aceitar os termos para continuar."),
 });
 
 export type CompanyInput = z.infer<typeof companySchema>;
+
+/**
+ * Shared duplicate-CNPJ guidance (shown at CNPJ blur AND on bootstrap rejection).
+ * Lives here because "use server" action files may only export async functions.
+ */
+export const CNPJ_ALREADY_REGISTERED_MSG =
+  "Esta empresa já está cadastrada na Lince. Fale com o administrador da sua empresa para receber um convite, ou entre com a conta original (você pode recuperar a senha no login).";
 
 /** Beneficiary travel-rule capture (AUSTRAC §4). Tracing info Lince retains + forwards to Avenia. */
 export const beneficiarySchema = z.object({

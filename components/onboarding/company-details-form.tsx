@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { companySchema, OPERATOR_ROLES, type CompanyInput } from "@/lib/schemas";
+import { companySchema, OPERATOR_ROLES, CNPJ_ALREADY_REGISTERED_MSG, type CompanyInput } from "@/lib/schemas";
 import { bootstrapAction, lookupCnpjAction } from "@/app/onboarding/actions";
 import { CircleHelp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,13 @@ export function CompanyDetailsForm() {
       return;
     }
     setValue("razaoSocial", res.razaoSocial, { shouldValidate: true, shouldDirty: true });
-    setCnpjLookup({ loading: false, note: res.ativa ? null : "Situação cadastral não ativa na Receita." });
+    // Duplicate feedback beats the situação note; submit stays enabled — the backend re-checks.
+    const note = res.alreadyRegistered
+      ? CNPJ_ALREADY_REGISTERED_MSG
+      : res.ativa
+        ? null
+        : "Situação cadastral não ativa na Receita.";
+    setCnpjLookup({ loading: false, note });
   }
 
   async function onSubmit(values: CompanyInput) {
@@ -133,6 +139,27 @@ export function CompanyDetailsForm() {
               ))}
             </select>
             {errors.role && <p className="text-sm text-clay-500">{errors.role.message}</p>}
+          </div>
+          <div className="space-y-2">
+            {/* pending-counsel: the three document names become real links to the
+                Avenia/Lince ToS + LGPD pages once counsel finalizes them. needs-figma-reconcile. */}
+            <label htmlFor="consent" className="flex items-start gap-2.5 text-sm text-warm-300">
+              <input
+                id="consent"
+                type="checkbox"
+                className="mt-0.5 size-4 shrink-0 cursor-pointer accent-gold-500"
+                aria-invalid={!!errors.consentAccepted}
+                {...register("consentAccepted")}
+              />
+              <span className="leading-snug">
+                Li e aceito os <span className="text-gold-500">Termos da Avenia</span>, os{" "}
+                <span className="text-gold-500">Termos da Lince</span> e o{" "}
+                <span className="text-gold-500">Consentimento LGPD</span>.
+              </span>
+            </label>
+            {errors.consentAccepted && (
+              <p className="text-sm text-clay-500">{errors.consentAccepted.message}</p>
+            )}
           </div>
           {serverError && <p className="text-sm text-clay-500">{serverError}</p>}
           <Button type="submit" className="w-full" disabled={isSubmitting}>

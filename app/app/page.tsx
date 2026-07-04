@@ -1,9 +1,15 @@
+import { HomeTiles } from "@/components/app/home-tiles";
+import { SafeguardingPanel } from "@/components/app/safeguarding-panel";
+
 export default function AppHome() {
   return (
-    <div className="space-y-2">
-      <h1 className="font-display text-2xl">Início</h1>
-      <p className="text-warm-300">Bem-vindo à Lince Finance. Sua conta está ativa.</p>
-      <p className="text-sm text-warm-500">As funcionalidades (saldos, pagamentos, transações) chegam em breve.</p>
+    <div className="mx-auto max-w-4xl space-y-8">
+      <header className="space-y-1">
+        <h1 className="font-display text-2xl">Bem-vindo à Lince Finance</h1>
+        <p className="text-warm-300">Comece por aqui. Adicione um beneficiário para começar.</p>
+      </header>
+      <HomeTiles />
+      <SafeguardingPanel />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { currentUser } from "@clerk/nextjs/server";
 import { bootstrapOrg, advanceOnboarding, lookupCnpj } from "@/lib/lince-api";
-import { companySchema, type CompanyInput } from "@/lib/schemas";
+import { companySchema, CNPJ_ALREADY_REGISTERED_MSG, type CompanyInput } from "@/lib/schemas";
 
 // Backend CNPJ error codes -> the existing neutral pt-BR strings (tipping-off-safe).
 // rate_limited / cnpj_lookup_unavailable fall through to the generic "unavailable" note.
@@ -12,6 +12,14 @@ const CNPJ_ERROR_PT: Record<string, string> = {
   cnpj_no_name: "CNPJ sem razão social na Receita.",
   unauthenticated: "Sessão expirada. Entre novamente.",
 };
+
+// Bootstrap rejections -> guidance or NEUTRAL copy. cnpj_denylisted deliberately falls
+// through to the same generic failure as anything else (tipping-off-safe: indistinguishable).
+const BOOTSTRAP_ERROR_PT: Record<string, string> = {
+  cnpj_already_registered: CNPJ_ALREADY_REGISTERED_MSG,
+  unauthenticated: "Sessão expirada. Entre novamente.",
+};
+const BOOTSTRAP_GENERIC = "Não foi possível concluir o cadastro. Tente novamente.";
 
 /** Create the org from the signup company details + the Clerk user's identity. */
 export async function bootstrapAction(values: CompanyInput): Promise<{ ok: true } | { error: string }> {
@@ -24,8 +32,11 @@ export async function bootstrapAction(values: CompanyInput): Promise<{ ok: true 
     [user.firstName, user.lastName].filter(Boolean).join(" ") || user.username || "Representante legal";
   const email = user.primaryEmailAddress?.emailAddress ?? "";
 
-  const res = await bootstrapOrg({ ...parsed.data, fullName, email });
-  if (!res.ok) return { error: res.error };
+  // consentAccepted is a client-side gate only — the backend owns the versioned
+  // consent set and stamps it once per org, so it is not forwarded here.
+  const { cnpj, razaoSocial, role } = parsed.data;
+  const res = await bootstrapOrg({ cnpj, razaoSocial, role, fullName, email });
+  if (!res.ok) return { error: BOOTSTRAP_ERROR_PT[res.error] ?? BOOTSTRAP_GENERIC };
   return { ok: true };
 }
 
@@ -41,7 +52,7 @@ export async function advanceAction(
 /** Look up public Receita data (razão social + situação) for a CNPJ via BrasilAPI, to pre-fill the form. */
 export async function lookupCnpjAction(
   cnpj: string,
-): Promise<{ razaoSocial: string; ativa: boolean } | { error: string }> {
+): Promise<{ razaoSocial: string; ativa: boolean; alreadyRegistered?: boolean } | { error: string }> {
   const digits = cnpj.replace(/\D/g, "");
   if (digits.length !== 14) return { error: "CNPJ inválido." };
 

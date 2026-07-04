@@ -65,7 +65,10 @@ export default async function OnboardingPage() {
 
         {state?.state === "rfi_required" && (
           <Screen title="Precisamos de mais informações">
-            <p className="text-warm-300">Há um pedido de informações adicionais para concluir sua análise.</p>
+            <p className="text-warm-300">
+              Verifique seu e-mail para os detalhes. Quando estiver pronto, reinicie a verificação.
+            </p>
+            <AdvanceButton step="launch-verification" label="Reiniciar verificação" pendingLabel="Abrindo…" />
           </Screen>
         )}
 

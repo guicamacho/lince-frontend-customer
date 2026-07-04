@@ -26,7 +26,7 @@ export function AuthShell({ children, footer }: { children: React.ReactNode; foo
             </span>
           </Link>
           {children}
-          {footer && <p className="mt-8 text-sm text-warm-400">{footer}</p>}
+          {footer && <div className="mt-8 space-y-3 text-sm text-warm-400">{footer}</div>}
         </div>
       </div>
 
