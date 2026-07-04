@@ -3,6 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { getOnboardingState } from "@/lib/lince-api";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/top-bar";
+import { AppTopBar } from "@/components/app/app-top-bar";
 import { AppFooter } from "@/components/app/app-footer";
 import { SessionTimeout } from "@/components/auth/session-timeout";
 import { Card, CardContent } from "@/components/ui/card";
@@ -43,13 +44,13 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
-      <TopBar />
-      <div className="flex flex-1">
-        <Sidebar />
-        <main className="flex-1 p-8">{children}</main>
+    <div className="flex min-h-screen">
+      <Sidebar />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <AppTopBar />
+        <main className="mx-auto w-full max-w-[1320px] flex-1 px-5 py-8 lg:px-9 lg:pb-16">{children}</main>
+        <AppFooter />
       </div>
-      <AppFooter />
       <SessionTimeout />
     </div>
   );

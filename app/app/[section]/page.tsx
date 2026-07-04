@@ -2,12 +2,13 @@ import { Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
 const TITLES: Record<string, string> = {
-  balances: "Saldos",
-  pay: "Pagar / Enviar",
+  accounts: "Contas",
+  deposit: "Depositar",
+  convert: "Converter",
+  payouts: "Pagamentos",
   transactions: "Transações",
-  beneficiaries: "Beneficiários",
   team: "Equipe",
-  settings: "Configurações",
+  rewards: "Recompensas",
 };
 
 export default async function SectionPage({ params }: { params: Promise<{ section: string }> }) {
