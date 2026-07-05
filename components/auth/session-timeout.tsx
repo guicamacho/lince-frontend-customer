@@ -40,10 +40,12 @@ export function SessionTimeout() {
     void clerk.signOut({ redirectUrl: "/sign-in?expired=1" });
   }, [clearTimers, clerk]);
 
-  const arm = useCallback(() => {
+  // Timer scheduling only — no setState, so the mount effect can call it directly
+  // (react-hooks/set-state-in-effect). Countdown starts null on mount; only re-arms
+  // from event/timer callbacks need the explicit reset in arm().
+  const schedule = useCallback(() => {
     clearTimers();
     warningRef.current = false;
-    setCountdown(null);
     timers.current.warn = setTimeout(() => {
       warningRef.current = true;
       setCountdown(Math.round(WARN_MS / 1000));
@@ -53,6 +55,11 @@ export function SessionTimeout() {
       timers.current.expire = setTimeout(logout, WARN_MS);
     }, IDLE_MS - WARN_MS);
   }, [clearTimers, logout]);
+
+  const arm = useCallback(() => {
+    schedule();
+    setCountdown(null);
+  }, [schedule]);
 
   const stayActive = useCallback(async () => {
     try {
@@ -64,7 +71,7 @@ export function SessionTimeout() {
   }, [clerk, arm]);
 
   useEffect(() => {
-    arm();
+    schedule();
     const onActivity = () => {
       // before the warning: extend silently. During the warning: require an explicit choice.
       if (!warningRef.current) arm();
@@ -74,7 +81,7 @@ export function SessionTimeout() {
       ACTIVITY_EVENTS.forEach((e) => window.removeEventListener(e, onActivity));
       clearTimers();
     };
-  }, [arm, clearTimers]);
+  }, [schedule, arm, clearTimers]);
 
   if (countdown == null) return null;
 
