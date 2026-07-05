@@ -12,6 +12,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const { userId } = await auth();
   if (!userId) redirect("/");
 
+  // Start the unread fetch in parallel with the gate read (two sequential round-trips
+  // otherwise) — only awaited on the happy path below; held orgs return without it.
+  const notificationsPromise = listNotifications().catch(() => ({ notifications: [], unread: 0 }));
+
   // The single gate: no app surface until the org is active.
   const state = await getOnboardingState();
   if (state?.state !== "active") redirect("/onboarding");
@@ -45,7 +49,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   // Past the active gate (held/blocked orgs returned above with no inbox): the unread ping count
   // drives the bell dot + sidebar "Avisos" badge.
-  const { unread } = await listNotifications();
+  const { unread } = await notificationsPromise;
 
   return (
     <div className="flex min-h-screen">
