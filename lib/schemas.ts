@@ -47,3 +47,18 @@ export const beneficiarySchema = z.object({
 });
 
 export type BeneficiaryInput = z.infer<typeof beneficiarySchema>;
+
+/**
+ * Customer reply to a staff-opened case (D1: reply-only — customers never open cases in v1).
+ * Neutral free text. The 4000-char cap mirrors the backend sanitizer (MAX_REPLY_LEN) so the UI
+ * pre-validates; the server still strips HTML/URLs and re-caps at the trust boundary.
+ */
+export const caseReplySchema = z.object({
+  body: z
+    .string()
+    .trim()
+    .min(1, { message: "Escreva uma mensagem" })
+    .max(4000, { message: "Mensagem muito longa (máximo de 4000 caracteres)" }),
+});
+
+export type CaseReplyInput = z.infer<typeof caseReplySchema>;

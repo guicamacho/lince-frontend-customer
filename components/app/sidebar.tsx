@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutGrid,
+  Inbox,
   Wallet,
   ArrowDownToLine,
   Repeat,
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 // /app/<section> "Em breve" placeholder until each feature lands.
 const NAV = [
   { href: "/app", label: "Início", icon: LayoutGrid, exact: true },
+  { href: "/app/avisos", label: "Avisos", icon: Inbox },
   { href: "/app/accounts", label: "Contas", icon: Wallet },
   { href: "/app/deposit", label: "Depositar", icon: ArrowDownToLine },
   { href: "/app/convert", label: "Converter", icon: Repeat },
@@ -30,7 +32,7 @@ const NAV = [
   { href: "/app/rewards", label: "Recompensas", icon: Gift },
 ];
 
-export function Sidebar() {
+export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
   const pathname = usePathname();
   return (
     <aside className="sticky top-0 hidden h-screen w-[268px] shrink-0 flex-col border-r border-ink-500 bg-ink-900 px-4 py-[22px] lg:flex">
@@ -59,6 +61,14 @@ export function Sidebar() {
             >
               <Icon className={cn("size-[19px]", active ? "text-gold-500" : "text-warm-400")} aria-hidden />
               {label}
+              {href === "/app/avisos" && unreadCount > 0 && (
+                <span
+                  className="ml-auto rounded-full bg-gold-500/15 px-2 py-0.5 font-mono text-[10px] font-bold text-gold-400"
+                  aria-label={`${unreadCount} não lida${unreadCount === 1 ? "" : "s"}`}
+                >
+                  {unreadCount}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { getOnboardingState } from "@/lib/lince-api";
+import { getOnboardingState, listNotifications } from "@/lib/lince-api";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/top-bar";
 import { AppTopBar } from "@/components/app/app-top-bar";
@@ -43,11 +43,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     );
   }
 
+  // Past the active gate (held/blocked orgs returned above with no inbox): the unread ping count
+  // drives the bell dot + sidebar "Avisos" badge.
+  const { unread } = await listNotifications();
+
   return (
     <div className="flex min-h-screen">
-      <Sidebar />
+      <Sidebar unreadCount={unread} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <AppTopBar />
+        <AppTopBar unreadCount={unread} />
         <main className="mx-auto w-full max-w-[1320px] flex-1 px-5 py-8 lg:px-9 lg:pb-16">{children}</main>
         <AppFooter />
       </div>

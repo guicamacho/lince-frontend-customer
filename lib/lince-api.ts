@@ -108,3 +108,81 @@ export async function createBeneficiary(input: {
     await authedFetch("/app/beneficiaries", { method: "POST", body: JSON.stringify(input) }),
   );
 }
+
+// --- Customer inbox ("Avisos"). Org is implicit (the backend derives it from res.locals.orgId).
+//     Reads only return customer_visible messages on allowlisted-type cases; author_id is never
+//     serialized to the customer (L4 of the tipping-off model). ---
+
+export interface CustomerNotification {
+  id: string;
+  kind: string;
+  case_id: string | null;
+  title: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface CustomerCaseSummary {
+  id: string;
+  type: string;
+  status: string;
+  opened_at: string;
+  closed_at: string | null;
+  last_message_at: string | null;
+}
+
+export interface CustomerCaseMessage {
+  id: string;
+  case_id: string;
+  author_type: string; // 'admin' | 'customer' | 'system'
+  body: string;
+  created_at: string;
+}
+
+export interface CustomerCaseThread {
+  case: { id: string; type: string; status: string; opened_at: string; closed_at: string | null };
+  messages: CustomerCaseMessage[];
+}
+
+export async function listNotifications(): Promise<{
+  notifications: CustomerNotification[];
+  unread: number;
+}> {
+  const res = await authedFetch("/app/notifications");
+  if (!res.ok) return { notifications: [], unread: 0 };
+  const body = (await res.json().catch(() => ({}))) as {
+    notifications?: CustomerNotification[];
+    unread?: number;
+  };
+  return { notifications: body.notifications ?? [], unread: body.unread ?? 0 };
+}
+
+export async function markNotificationRead(id: string): Promise<Result<{ ok: true }>> {
+  return toResult<{ ok: true }>(
+    await authedFetch(`/app/notifications/${id}/read`, { method: "POST" }),
+  );
+}
+
+export async function listMyCases(): Promise<CustomerCaseSummary[]> {
+  const res = await authedFetch("/app/cases");
+  if (!res.ok) return [];
+  const body = (await res.json().catch(() => ({}))) as { cases?: CustomerCaseSummary[] };
+  return body.cases ?? [];
+}
+
+/** null when the case is not the caller's org (backend 404) — surfaced as a neutral "não encontrado". */
+export async function getCaseThread(id: string): Promise<CustomerCaseThread | null> {
+  const res = await authedFetch(`/app/cases/${id}/messages`);
+  if (!res.ok) return null;
+  return (await res.json()) as CustomerCaseThread;
+}
+
+export async function postCaseReply(caseId: string, body: string): Promise<Result<{ id: string }>> {
+  return toResult<{ id: string }>(
+    await authedFetch(`/app/cases/${caseId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    }),
+  );
+}

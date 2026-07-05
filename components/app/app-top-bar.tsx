@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { UserButton, useUser } from "@clerk/nextjs";
 import { Search, Bell } from "lucide-react";
 
@@ -9,7 +10,7 @@ import { Search, Bell } from "lucide-react";
  * branded <TopBar> (logo + account) is used on onboarding + the under-review hold
  * screen instead. Search / bell are inert for now.
  */
-export function AppTopBar() {
+export function AppTopBar({ unreadCount = 0 }: { unreadCount?: number }) {
   const { user } = useUser();
   const firstName = user?.firstName ?? "Cliente";
 
@@ -28,14 +29,20 @@ export function AppTopBar() {
         >
           <Search className="size-4" aria-hidden />
         </button>
-        <button
-          type="button"
-          aria-label="Notificações"
+        <Link
+          href="/app/avisos"
+          aria-label={
+            unreadCount > 0
+              ? `Notificações (${unreadCount} não lida${unreadCount === 1 ? "" : "s"})`
+              : "Notificações"
+          }
           className="relative flex size-[38px] cursor-pointer items-center justify-center rounded-[10px] bg-ink-800 text-warm-300 ring-1 ring-foreground/10 transition-colors hover:bg-ink-700 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <Bell className="size-4" aria-hidden />
-          <span className="absolute right-2.5 top-2.5 size-[7px] rounded-full bg-gold-500" aria-hidden />
-        </button>
+          {unreadCount > 0 && (
+            <span className="absolute right-2.5 top-2.5 size-[7px] rounded-full bg-gold-500" aria-hidden />
+          )}
+        </Link>
 
         <div className="mx-1.5 h-[26px] w-px bg-ink-500" />
 
