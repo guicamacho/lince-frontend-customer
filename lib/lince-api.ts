@@ -37,6 +37,18 @@ async function toResult<T>(res: Response): Promise<Result<T>> {
   return { ok: true, data: body as T };
 }
 
+// --- Depositar: Avenia account deposit details, visible post-approval (backend /app gate).
+//     Custódia Avenia (Modelo A); funds rest as BRLA shown as R$.
+export interface DepositDetails {
+  pixKey: string | null;
+  brCode: string | null;
+  wallets: Array<{ chain: string; address: string }>;
+}
+
+export async function getDepositDetails(): Promise<Result<DepositDetails>> {
+  return toResult<DepositDetails>(await authedFetch("/app/deposit-details"));
+}
+
 /** The caller's org state (drives the onboarding shell gate). null if no org yet. */
 export async function getOnboardingState(): Promise<OrgSnapshot | null> {
   const res = await authedFetch("/onboarding/state");
