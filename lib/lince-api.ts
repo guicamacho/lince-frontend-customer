@@ -109,6 +109,62 @@ export async function createBeneficiary(input: {
   );
 }
 
+// --- Transações (F3). Amounts are ledger minor units + currency (the same ints the ledger holds,
+//     posted from Avenia ticket actuals). Fees are the itemized Avenia appliedFees[] plus the Lince
+//     rebate line — never a blended/all-in FX rate (Modelo A). Built against the frozen
+//     GET /app/transactions contract; degrades to a Result error while the route is unbuilt (404). ---
+
+export type TxType = "deposit" | "convert_and_send" | "payout";
+
+export interface TxFee {
+  label: string;
+  amount: number; // minor units
+  currency: string;
+  rebatable: boolean;
+}
+
+export interface TxRebate {
+  label?: string;
+  amount: number; // minor units
+  currency: string;
+}
+
+export interface TxQuoteSnapshot {
+  basePrice?: string;
+  pairName?: string;
+  sourceAmount?: number; // minor units
+  destAmount?: number; // minor units
+}
+
+export interface Transaction {
+  id: string;
+  type: TxType;
+  state: string; // org_transactions.state (created/funding/executing/settled/failed/…)
+  status: string; // Avenia ticket lifecycle: UNPAID | PROCESSING | PAID | FAILED | PARTIAL_FAILED
+  statusLabel?: string; // optional backend copy; F3 maps status -> neutral label locally (tipping-off)
+  sourceCurrency: string;
+  sourceAmount: number; // minor units
+  destCurrency: string;
+  destAmount: number; // minor units
+  fees: TxFee[];
+  rebate?: TxRebate | null;
+  beneficiaryLabel: string | null;
+  createdAt: string;
+  vendorRef: string | null;
+  quote?: TxQuoteSnapshot | null;
+}
+
+/** Result (not []) so the page can show a neutral degraded state while the backend route 404s. */
+export async function listTransactions(): Promise<Result<Transaction[]>> {
+  const res = await authedFetch("/app/transactions");
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as { error?: string };
+    return { ok: false, error: body.error ?? `HTTP ${res.status}` };
+  }
+  const body = (await res.json().catch(() => ({}))) as { transactions?: Transaction[] };
+  return { ok: true, data: body.transactions ?? [] };
+}
+
 // --- Customer inbox ("Avisos"). Org is implicit (the backend derives it from res.locals.orgId).
 //     Reads only return customer_visible messages on allowlisted-type cases; author_id is never
 //     serialized to the customer (L4 of the tipping-off model). ---
