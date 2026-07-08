@@ -49,6 +49,24 @@ export async function getDepositDetails(): Promise<Result<DepositDetails>> {
   return toResult<DepositDetails>(await authedFetch("/app/deposit-details"));
 }
 
+// Amount-specific PIX deposit: quote+ticket on the org's subaccount; returns the brCode to pay.
+// idemKey binds the request (same key + same amount replays the same ticket; different -> 409).
+export interface DepositReceipt {
+  id: string;
+  state: string;
+  brCode: string | null;
+  expiration: string | null;
+  sourceAmount: number; // centavos
+  destAmount: number | null;
+  fees: Array<{ label: string; amount: number; currency: string; rebatable: boolean }>;
+}
+
+export async function createDeposit(input: { amountBrl: string; idemKey: string }): Promise<Result<DepositReceipt>> {
+  return toResult<DepositReceipt>(
+    await authedFetch("/app/deposits", { method: "POST", body: JSON.stringify(input) }),
+  );
+}
+
 /** The caller's org state (drives the onboarding shell gate). null if no org yet. */
 export async function getOnboardingState(): Promise<OrgSnapshot | null> {
   const res = await authedFetch("/onboarding/state");

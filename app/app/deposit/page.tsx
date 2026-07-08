@@ -1,5 +1,6 @@
 import { getDepositDetails } from "@/lib/lince-api";
 import { DepositView } from "@/components/app/deposit-view";
+import { DepositForm } from "@/components/app/deposit-form";
 import { Card } from "@/components/ui/card";
 
 // Server component. This folder route takes precedence over the [section] "Em breve" placeholder;
@@ -16,6 +17,8 @@ export default async function DepositPage() {
           Envie um PIX e o valor entra como saldo em reais (R$) na sua conta. Custódia Avenia.
         </p>
       </div>
+
+      <DepositForm />
 
       {result.ok ? (
         <DepositView details={result.data} />
