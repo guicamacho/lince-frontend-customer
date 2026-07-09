@@ -1,35 +1,41 @@
 import Link from "next/link";
-import { Send, Repeat, TrendingUp } from "lucide-react";
+import { Send, Repeat } from "lucide-react";
 import { SampleBanner } from "@/components/app/sample-banner";
 import { WalletCard } from "@/components/app/wallet-card";
 import { BalanceChart } from "@/components/app/balance-chart";
 import { TxTable } from "@/components/app/tx-table";
 import { AttentionRail } from "@/components/app/attention-rail";
 import { SafeguardingPanel } from "@/components/app/safeguarding-panel";
-import { totalNetWorth, wallets } from "@/lib/sample-home";
+import { wallets } from "@/lib/sample-home";
+import { getBalances } from "@/lib/lince-api";
 
-// HomeView (mock). SAMPLE data throughout — see lib/sample-home / SampleBanner.
-export default function AppHome() {
+// HomeView. The hero balance is REAL (ledger, settled money only); the sections
+// below are still SAMPLE data — see lib/sample-home / SampleBanner.
+export default async function AppHome() {
+  const res = await getBalances();
+  const brlaMinor = res.ok ? (res.data.balances.BRLA ?? 0) : null;
+  const formatted =
+    brlaMinor === null
+      ? { whole: "—", fraction: "" }
+      : {
+          whole: `R$ ${Math.trunc(brlaMinor / 100).toLocaleString("pt-BR")}`,
+          fraction: `,${String(brlaMinor % 100).padStart(2, "0")}`,
+        };
   return (
     <div className="space-y-4">
       <SampleBanner />
 
-      {/* Total + primary actions */}
+      {/* Real balance + primary actions */}
       <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
         <div>
           <div className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-gold-500">
-            Patrimônio total
+            Saldo disponível
           </div>
           <div className="mt-2 font-display text-[40px] leading-none font-bold tracking-[-0.03em] tabular-nums sm:text-[48px]">
-            {totalNetWorth.whole}
-            <span className="font-sans text-[22px] font-semibold text-warm-400">
-              {totalNetWorth.fraction} {totalNetWorth.currency}
-            </span>
+            {formatted.whole}
+            <span className="font-sans text-[22px] font-semibold text-warm-400">{formatted.fraction}</span>
           </div>
-          <div className="mt-2.5 flex items-center gap-1.5 text-sm font-bold text-emerald-500">
-            <TrendingUp className="size-[15px]" aria-hidden />
-            {totalNetWorth.trend}
-          </div>
+          <div className="mt-2.5 text-sm text-warm-500">Custódia Avenia · atualizado após cada confirmação</div>
         </div>
         <div className="flex gap-2.5">
           <Link

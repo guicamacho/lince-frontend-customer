@@ -67,6 +67,11 @@ export async function createDeposit(input: { amountBrl: string; idemKey: string 
   );
 }
 
+/** Ledger balances (minor units per currency) — settled money only. */
+export async function getBalances(): Promise<Result<{ balances: Record<string, number> }>> {
+  return toResult<{ balances: Record<string, number> }>(await authedFetch("/app/balances"));
+}
+
 /** The caller's org state (drives the onboarding shell gate). null if no org yet. */
 export async function getOnboardingState(): Promise<OrgSnapshot | null> {
   const res = await authedFetch("/onboarding/state");
