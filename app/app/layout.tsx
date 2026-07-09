@@ -16,8 +16,25 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // otherwise) — only awaited on the happy path below; held orgs return without it.
   const notificationsPromise = listNotifications().catch(() => ({ notifications: [], unread: 0 }));
 
-  // The single gate: no app surface until the org is active.
-  const state = await getOnboardingState();
+  // The single gate: no app surface until the org is active. A FAILED read renders a
+  // neutral retry screen — it must never bounce an approved account back to onboarding.
+  const result = await getOnboardingState();
+  if (!result.ok) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <TopBar />
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
+          <Card className="min-h-[30rem] w-full max-w-md justify-center border-ink-500 bg-ink-700">
+            <CardContent className="space-y-4 text-center">
+              <h1 className="font-display text-2xl">Não foi possível carregar sua conta</h1>
+              <p className="text-warm-300">Tente recarregar a página em instantes.</p>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+  const state = result.state;
   if (state?.state !== "active") redirect("/onboarding");
 
   // Tipping-off-safe hold: suspended/blocked orgs get one neutral screen (same

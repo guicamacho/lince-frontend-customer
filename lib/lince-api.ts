@@ -72,11 +72,25 @@ export async function getBalances(): Promise<Result<{ balances: Record<string, n
   return toResult<{ balances: Record<string, number> }>(await authedFetch("/app/balances"));
 }
 
-/** The caller's org state (drives the onboarding shell gate). null if no org yet. */
-export async function getOnboardingState(): Promise<OrgSnapshot | null> {
-  const res = await authedFetch("/onboarding/state");
-  if (!res.ok) return null;
-  return (await res.json()) as OrgSnapshot | null;
+/** The caller's company (id + razão social + state) — the Configurações page reads it. */
+export async function getMe(): Promise<Result<{ id: string; razao_social: string; state: string }>> {
+  return toResult<{ id: string; razao_social: string; state: string }>(await authedFetch("/app/me"));
+}
+
+/** The caller's org state (drives the onboarding + app shell gates).
+ *  DISTINGUISHES "no org yet" (ok + null) from a failed read (ok: false — backend blip,
+ *  401 during the post-sign-in handshake, timeout). Conflating the two once showed the
+ *  company form to an approved account; callers must render errors as errors. */
+export type OnboardingStateResult = { ok: true; state: OrgSnapshot | null } | { ok: false };
+
+export async function getOnboardingState(): Promise<OnboardingStateResult> {
+  try {
+    const res = await authedFetch("/onboarding/state");
+    if (!res.ok) return { ok: false };
+    return { ok: true, state: (await res.json()) as OrgSnapshot | null };
+  } catch {
+    return { ok: false };
+  }
 }
 
 export async function bootstrapOrg(input: {

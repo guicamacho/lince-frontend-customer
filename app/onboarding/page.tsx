@@ -24,7 +24,22 @@ export default async function OnboardingPage() {
   const { userId } = await auth();
   if (!userId) redirect("/");
 
-  const state = await getOnboardingState();
+  const result = await getOnboardingState();
+  // A failed read is NOT "no company": never show the signup form to an approved account
+  // over a blip. Neutral retry screen instead.
+  if (!result.ok) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <TopBar />
+        <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
+          <Screen title="Não foi possível carregar seus dados">
+            <p className="text-warm-300">Tente recarregar a página em instantes.</p>
+          </Screen>
+        </main>
+      </div>
+    );
+  }
+  const state = result.state;
   if (state?.state === "active") redirect("/app");
 
   return (

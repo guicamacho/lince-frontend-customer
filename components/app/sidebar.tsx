@@ -14,15 +14,16 @@ import {
   ReceiptText,
   Users,
   Gift,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Beneficiários points at the real page; the rest are inert links to the
-// /app/<section> "Em breve" placeholder until each feature lands.
+// Início/Depositar/Transações/Beneficiários/Avisos/Configurações are real pages; the rest
+// are inert links to the /app/<section> "Em breve" placeholder until each feature lands.
+// Order per product decision 2026-07-09: Avisos second-last, Configurações last.
 const NAV = [
   { href: "/app", label: "Início", icon: LayoutGrid, exact: true },
-  { href: "/app/avisos", label: "Avisos", icon: Inbox },
-  { href: "/app/accounts", label: "Contas", icon: Wallet },
+  { href: "/app/accounts", label: "Carteira", icon: Wallet },
   { href: "/app/deposit", label: "Depositar", icon: ArrowDownToLine },
   { href: "/app/convert", label: "Converter", icon: Repeat },
   { href: "/app/payouts", label: "Pagamentos", icon: Send },
@@ -30,6 +31,8 @@ const NAV = [
   { href: "/app/transactions", label: "Transações", icon: ReceiptText },
   { href: "/app/team", label: "Equipe", icon: Users },
   { href: "/app/rewards", label: "Recompensas", icon: Gift },
+  { href: "/app/avisos", label: "Avisos", icon: Inbox },
+  { href: "/app/settings", label: "Configurações", icon: Settings },
 ];
 
 export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {

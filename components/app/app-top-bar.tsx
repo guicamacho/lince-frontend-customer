@@ -57,6 +57,9 @@ export function AppTopBar({ unreadCount = 0 }: { unreadCount?: number }) {
                 avatarImage: "mix-blend-luminosity",
                 userButtonPopoverCard: "border border-ink-500 bg-ink-700 shadow-xl",
                 userButtonPopoverFooter: "hidden",
+                // Clerk's account-management modal is off (2026-07-09): settings live at
+                // /app/settings. The popover keeps sign-out only.
+                userButtonPopoverActionButton__manageAccount: "hidden",
               },
             }}
           />

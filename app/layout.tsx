@@ -25,10 +25,32 @@ export const metadata: Metadata = {
   description: "Pagamentos internacionais para empresas brasileiras.",
 };
 
+// ptBR + brand overrides: the Clerk instance's application name renders as "Client" on the
+// auth screens, so the titles are hardcoded to the business name here (PRD-02 branding).
+const localization = {
+  ...ptBR,
+  signIn: {
+    ...ptBR.signIn,
+    start: {
+      ...ptBR.signIn?.start,
+      title: "Entrar na Lince Finance",
+      subtitle: "Bem-vindo de volta! Entre para continuar.",
+    },
+  },
+  signUp: {
+    ...ptBR.signUp,
+    start: {
+      ...ptBR.signUp?.start,
+      title: "Criar sua conta Lince Finance",
+      subtitle: "Bem-vindo! Preencha os dados para começar.",
+    },
+  },
+};
+
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider
-      localization={ptBR}
+      localization={localization}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
       signInForceRedirectUrl="/onboarding"
