@@ -15,6 +15,7 @@ import {
   Users,
   Gift,
   Settings,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -33,12 +34,15 @@ const NAV = [
   { href: "/app/rewards", label: "Recompensas", icon: Gift },
   { href: "/app/avisos", label: "Avisos", icon: Inbox },
   { href: "/app/settings", label: "Configurações", icon: Settings },
+  // Cartão renders the shared /app/[section] "Em breve" placeholder; the entry carries
+  // its own "Em breve" pill so nobody expects a live feature.
+  { href: "/app/card", label: "Cartão", icon: CreditCard, comingSoon: true },
 ];
 
 export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
   const pathname = usePathname();
   return (
-    <aside className="sticky top-0 hidden h-screen w-[268px] shrink-0 flex-col border-r border-ink-500 bg-ink-900 px-4 py-[22px] lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-[268px] shrink-0 flex-col border-r border-ink-500 bg-gradient-to-b from-ink-800/70 via-ink-900 to-ink-900 px-4 py-[22px] lg:flex">
       <Link
         href="/app"
         className="mb-6 mt-1 flex items-center gap-2.5 px-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -48,7 +52,7 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
       </Link>
 
       <nav className="flex flex-col gap-0.5">
-        {NAV.map(({ href, label, icon: Icon, exact }) => {
+        {NAV.map(({ href, label, icon: Icon, exact, comingSoon }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
           return (
             <Link
@@ -64,6 +68,11 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
             >
               <Icon className={cn("size-[19px]", active ? "text-gold-500" : "text-warm-400")} aria-hidden />
               {label}
+              {comingSoon && (
+                <span className="ml-auto rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-warm-500 uppercase">
+                  Em breve
+                </span>
+              )}
               {href === "/app/avisos" && unreadCount > 0 && (
                 <span
                   className="ml-auto rounded-full bg-gold-500/15 px-2 py-0.5 font-mono text-[10px] font-bold text-gold-400"
@@ -77,15 +86,29 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
         })}
       </nav>
 
-      <div className="mt-auto rounded-[18px] bg-ink-800 p-5 ring-1 ring-gold-500/30">
-        <div className="font-display text-base leading-tight font-bold text-bone-100">O cartão Lince.</div>
-        <p className="mt-1.5 text-[12.5px] text-warm-400">Use stablecoins em qualquer lugar.</p>
-        <button
-          type="button"
-          className="mt-3.5 inline-flex min-h-9 cursor-pointer items-center rounded-[10px] bg-gold-500 px-3.5 text-[13px] font-bold text-ink-900 transition-colors hover:bg-gold-400 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+      {/* Lince Business Card promo — decorative card art in the background, inert CTA. */}
+      <div className="relative mt-auto overflow-hidden rounded-[18px] bg-ink-800 p-5 ring-1 ring-gold-500/30">
+        <div
+          aria-hidden
+          className="absolute -right-7 -top-9 h-[104px] w-[164px] rotate-[18deg] rounded-xl bg-gradient-to-br from-gold-400/35 via-gold-500/15 to-transparent ring-1 ring-gold-500/25"
         >
-          Solicitar
-        </button>
+          <span className="absolute left-3 top-3 block h-[14px] w-[19px] rounded-[3px] bg-gold-500/50" />
+          <span className="absolute bottom-2.5 left-3 block font-display text-[10px] font-bold tracking-wide text-bone-100/40">
+            lince
+          </span>
+        </div>
+        <div className="relative">
+          <div className="font-display text-base leading-tight font-bold text-bone-100">
+            Lince Business Card
+          </div>
+          <p className="mt-1.5 text-[12.5px] text-warm-400">Sua empresa, sem fronteiras.</p>
+          <span
+            aria-disabled="true"
+            className="mt-3.5 inline-flex min-h-9 cursor-default items-center rounded-[10px] bg-ink-700 px-3.5 text-[13px] font-bold text-warm-400 ring-1 ring-foreground/10 select-none"
+          >
+            Em breve
+          </span>
+        </div>
       </div>
     </aside>
   );
