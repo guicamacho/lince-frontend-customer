@@ -53,10 +53,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       localization={localization}
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
-      signInForceRedirectUrl="/onboarding"
-      signUpForceRedirectUrl="/onboarding"
-      signInFallbackRedirectUrl="/onboarding"
-      signUpFallbackRedirectUrl="/onboarding"
+      // "/" routes by org state (active -> /app, else /onboarding) so approved
+      // accounts never pass through the onboarding URL after sign-in.
+      signInForceRedirectUrl="/"
+      signUpForceRedirectUrl="/"
+      signInFallbackRedirectUrl="/"
+      signUpFallbackRedirectUrl="/"
       appearance={{
         variables: {
           colorPrimary: "#f2a93c",

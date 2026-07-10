@@ -84,13 +84,19 @@ export async function getMe(): Promise<Result<{ id: string; razao_social: string
 export type OnboardingStateResult = { ok: true; state: OrgSnapshot | null } | { ok: false };
 
 export async function getOnboardingState(): Promise<OnboardingStateResult> {
-  try {
-    const res = await authedFetch("/onboarding/state");
-    if (!res.ok) return { ok: false };
-    return { ok: true, state: (await res.json()) as OrgSnapshot | null };
-  } catch {
-    return { ok: false };
+  // Two attempts: the request immediately after sign-in intermittently fails its read
+  // (fresh-session token mint + Clerk dev-instance throttling); a short retry absorbs it.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const res = await authedFetch("/onboarding/state");
+      if (res.ok) return { ok: true, state: (await res.json()) as OrgSnapshot | null };
+      console.warn("onboarding_state_read_failed", JSON.stringify({ attempt, status: res.status }));
+    } catch (e) {
+      console.warn("onboarding_state_read_failed", JSON.stringify({ attempt, error: e instanceof Error ? e.message : String(e) }));
+    }
+    if (attempt === 0) await new Promise((r) => setTimeout(r, 400));
   }
+  return { ok: false };
 }
 
 export async function bootstrapOrg(input: {
