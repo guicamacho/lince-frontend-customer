@@ -6,10 +6,17 @@
  * surface the beneficiary flow points at. SMS is intentionally NOT offered (PRD-07 ruling).
  */
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useReverification } from "@clerk/nextjs";
 import { QRCodeSVG } from "qrcode.react";
 import { Check, KeyRound, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+/** Surface Clerk's real error (reverification needed, factor not enabled in the instance, …)
+ *  instead of a generic message — the cause matters (dashboard config vs. user action). */
+function clerkError(err: unknown, fallback: string): string {
+  const e = err as { errors?: Array<{ longMessage?: string; message?: string }>; message?: string };
+  return e?.errors?.[0]?.longMessage ?? e?.errors?.[0]?.message ?? e?.message ?? fallback;
+}
 
 export function MfaSettings() {
   const { user, isLoaded } = useUser();
@@ -38,6 +45,11 @@ export function MfaSettings() {
 
 function TotpEnroll() {
   const { user } = useUser();
+  // useReverification wraps sensitive actions: if Clerk needs a step-up (fresh re-auth) to
+  // enroll a factor, it drives that challenge instead of the call just throwing.
+  const createTOTP = useReverification(() => user!.createTOTP());
+  const verifyTOTPWith = useReverification((code: string) => user!.verifyTOTP({ code }));
+  const createBackupCode = useReverification(() => user!.createBackupCode());
   const [uri, setUri] = useState<string | null>(null);
   const [secret, setSecret] = useState<string | null>(null);
   const [code, setCode] = useState("");
@@ -51,11 +63,11 @@ function TotpEnroll() {
     setError(null);
     setPending(true);
     try {
-      const totp = await user!.createTOTP();
+      const totp = await createTOTP();
       setUri(totp.uri ?? null);
       setSecret(totp.secret ?? null);
-    } catch {
-      setError("Não foi possível iniciar. Talvez seja necessário entrar novamente.");
+    } catch (err) {
+      setError(clerkError(err, "Não foi possível iniciar a configuração."));
     } finally {
       setPending(false);
     }
@@ -66,14 +78,14 @@ function TotpEnroll() {
     setError(null);
     setPending(true);
     try {
-      await user!.verifyTOTP({ code: code.trim() });
-      const bc = await user!.createBackupCode();
+      await verifyTOTPWith(code.trim());
+      const bc = await createBackupCode();
       setBackupCodes(bc.codes ?? []);
       setUri(null);
       setSecret(null);
       setCode("");
-    } catch {
-      setError("Código inválido. Verifique o app autenticador e tente novamente.");
+    } catch (err) {
+      setError(clerkError(err, "Código inválido. Verifique o app autenticador e tente novamente."));
     } finally {
       setPending(false);
     }
@@ -155,6 +167,7 @@ function TotpEnroll() {
 
 function PasskeyEnroll() {
   const { user } = useUser();
+  const createPasskey = useReverification(() => user!.createPasskey());
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [added, setAdded] = useState(false);
@@ -164,10 +177,10 @@ function PasskeyEnroll() {
     setError(null);
     setPending(true);
     try {
-      await user!.createPasskey();
+      await createPasskey();
       setAdded(true);
-    } catch {
-      setError("Não foi possível criar a passkey neste dispositivo.");
+    } catch (err) {
+      setError(clerkError(err, "Não foi possível criar a passkey neste dispositivo."));
     } finally {
       setPending(false);
     }
