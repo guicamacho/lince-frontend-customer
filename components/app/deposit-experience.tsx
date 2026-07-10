@@ -148,7 +148,7 @@ export function DepositExperience({ details }: { details: DepositDetails }) {
                   }`}
                 >
                   {c.icon}
-                  <span className="font-semibold">{c.id === "BRL" ? "PIX" : c.id}</span>
+                  <span className="font-semibold">{c.id}</span>
                 </button>
               ))}
             </div>
