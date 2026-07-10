@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { getOnboardingState, listNotifications, getMe } from "@/lib/lince-api";
 import { MfaBanner } from "@/components/app/mfa-banner";
 import { Sidebar } from "@/components/app/sidebar";
@@ -66,15 +66,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }
 
   // Past the active gate (held/blocked orgs returned above with no inbox): the unread ping count
-  // drives the bell dot + sidebar "Avisos" badge; the company name feeds the greeting; the
-  // user's 2FA state drives the persistent enrol banner (per user/login, shown until enrolled).
-  const [{ unread }, me, clerkUser] = await Promise.all([
-    notificationsPromise,
-    getMe().catch(() => null),
-    currentUser().catch(() => null),
-  ]);
+  // drives the bell dot + sidebar "Avisos" badge; the company name feeds the greeting.
+  const [{ unread }, me] = await Promise.all([notificationsPromise, getMe().catch(() => null)]);
   const companyName = me && me.ok ? me.data.razao_social : undefined;
-  const mfaEnrolled = clerkUser?.twoFactorEnabled ?? true; // default true => no banner if unknown
 
   return (
     <div className="flex min-h-screen">
@@ -82,7 +76,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <AppTopBar unreadCount={unread} companyName={companyName} />
         <main className="mx-auto w-full max-w-[1320px] flex-1 px-5 py-8 lg:px-9 lg:pb-16">
-          {!mfaEnrolled && <MfaBanner />}
+          {/* Client component: reads the full Clerk user (passkeys) and self-hides when MFA
+              (TOTP or passkey) is present. */}
+          <MfaBanner />
           {children}
         </main>
         <AppFooter />

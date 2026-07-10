@@ -23,11 +23,13 @@ function clerkError(err: unknown, fallback: string): string {
 export function MfaSettings() {
   const { user, isLoaded } = useUser();
   if (!isLoaded || !user) return <p className="text-sm text-warm-500">Carregando…</p>;
+  // Satisfied by EITHER a second factor (TOTP) OR a passkey (ruling 2026-07-10).
+  const hasMfa = user.twoFactorEnabled || (user.passkeys?.length ?? 0) > 0;
 
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2 text-sm">
-        {user.twoFactorEnabled ? (
+        {hasMfa ? (
           <span className="inline-flex items-center gap-1.5 text-emerald-500">
             <ShieldCheck className="size-4" aria-hidden /> Verificação em duas etapas ativa
           </span>
@@ -35,12 +37,12 @@ export function MfaSettings() {
           <span className="text-warm-400">Verificação em duas etapas não configurada</span>
         )}
       </div>
+      <p className="text-xs text-warm-500">
+        Basta um método: app autenticador <strong>ou</strong> passkey. É exigido para cadastrar
+        beneficiários (destinatários de pagamentos).
+      </p>
       <TotpEnroll />
       <PasskeyEnroll />
-      <p className="text-xs text-warm-500">
-        A verificação em duas etapas é exigida para cadastrar beneficiários (destinatários de
-        pagamentos).
-      </p>
     </div>
   );
 }
