@@ -24,58 +24,94 @@ interface SessionRow {
   revoke: () => Promise<unknown>;
 }
 
-export function ProfileNameForm() {
-  const { user } = useUser();
-  if (!user) return null;
-  // Keyed by user.id so state initializes from the loaded user (no sync-in-effect).
-  return <NameFields key={user.id} user={user} />;
+function Field({
+  id,
+  label,
+  value,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="min-w-56 flex-1">
+      <label htmlFor={id} className="text-xs font-medium tracking-wide text-warm-500 uppercase">
+        {label}
+      </label>
+      <input
+        id={id}
+        type="password"
+        autoComplete={id === "current-password" ? "current-password" : "new-password"}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full rounded-lg border border-ink-500 bg-ink-800 px-3 py-2 text-sm text-warm-200 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+      />
+    </div>
+  );
 }
 
-function NameFields({ user }: { user: NonNullable<ReturnType<typeof useUser>["user"]> }) {
-  const [firstName, setFirstName] = useState(user.firstName ?? "");
-  const [lastName, setLastName] = useState(user.lastName ?? "");
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+export function PasswordForm() {
+  const { user } = useUser();
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [error, setError] = useState<string | null>(null);
+  if (!user) return null;
+  const hasPassword = user.passwordEnabled;
 
   return (
     <form
-      className="flex flex-wrap items-end gap-3"
+      className="space-y-3"
       onSubmit={async (e) => {
         e.preventDefault();
+        setError(null);
+        if (next.length < 8) {
+          setError("A nova senha precisa de pelo menos 8 caracteres.");
+          return;
+        }
+        if (next !== confirm) {
+          setError("A confirmação não confere com a nova senha.");
+          return;
+        }
         setStatus("saving");
         try {
-          await user.update({ firstName: firstName.trim(), lastName: lastName.trim() });
+          await user.updatePassword({
+            newPassword: next,
+            ...(hasPassword ? { currentPassword: current } : {}),
+            signOutOfOtherSessions: true,
+          });
           setStatus("saved");
-          setTimeout(() => setStatus("idle"), 2000);
-        } catch {
-          setStatus("error");
+          setCurrent("");
+          setNext("");
+          setConfirm("");
+          setTimeout(() => setStatus("idle"), 2500);
+        } catch (err) {
+          setStatus("idle");
+          const clerkMessage = (err as { errors?: Array<{ longMessage?: string; message?: string }> })
+            ?.errors?.[0];
+          setError(clerkMessage?.longMessage ?? clerkMessage?.message ?? "Não foi possível alterar a senha agora.");
         }
       }}
     >
-      {(
-        [
-          ["Nome", firstName, setFirstName],
-          ["Sobrenome", lastName, setLastName],
-        ] as const
-      ).map(([label, value, set]) => (
-        <div key={label} className="min-w-40 flex-1">
-          <label
-            htmlFor={`name-${label}`}
-            className="text-xs font-medium tracking-wide text-warm-500 uppercase"
-          >
-            {label}
-          </label>
-          <input
-            id={`name-${label}`}
-            value={value}
-            onChange={(e) => set(e.target.value)}
-            className="mt-1 w-full rounded-lg border border-ink-500 bg-ink-800 px-3 py-2 text-sm text-warm-200 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-          />
-        </div>
-      ))}
-      <Button type="submit" variant="outline" disabled={status === "saving"} className="cursor-pointer">
-        {status === "saving" ? "Salvando…" : status === "saved" ? "Salvo" : "Salvar nome"}
-      </Button>
-      {status === "error" && <p className="w-full text-sm text-red-400">Não foi possível salvar agora.</p>}
+      <div className="flex flex-wrap gap-3">
+        {hasPassword && (
+          <Field id="current-password" label="Senha atual" value={current} onChange={setCurrent} />
+        )}
+        <Field id="new-password" label="Nova senha" value={next} onChange={setNext} />
+        <Field id="confirm-password" label="Confirmar nova senha" value={confirm} onChange={setConfirm} />
+      </div>
+      <div className="flex items-center gap-3">
+        <Button type="submit" variant="outline" disabled={status === "saving"} className="cursor-pointer">
+          {status === "saving" ? "Salvando…" : status === "saved" ? "Senha alterada" : hasPassword ? "Alterar senha" : "Definir senha"}
+        </Button>
+        <span className="text-xs text-warm-500">
+          Ao alterar, suas outras sessões são encerradas automaticamente.
+        </span>
+      </div>
+      {error && <p className="text-sm text-red-400">{error}</p>}
     </form>
   );
 }

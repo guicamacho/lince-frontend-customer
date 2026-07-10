@@ -3,7 +3,7 @@ import { SignOutButton } from "@clerk/nextjs";
 import { getMe } from "@/lib/lince-api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ProfileNameForm, ActiveSessions } from "@/components/app/account-settings";
+import { PasswordForm, ActiveSessions } from "@/components/app/account-settings";
 
 // Configurações — Lince-owned settings surface (product decision 2026-07-09: Clerk's
 // user-settings modal is hidden; account management grows here instead).
@@ -32,8 +32,8 @@ export default async function SettingsPage() {
       </Card>
 
       <Card className="gap-4 p-6">
-        <h2 className="font-medium text-warm-200">Perfil</h2>
-        <ProfileNameForm />
+        <h2 className="font-medium text-warm-200">Senha</h2>
+        <PasswordForm />
       </Card>
 
       <Card className="gap-4 p-6">
