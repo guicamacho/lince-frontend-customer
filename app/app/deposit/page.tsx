@@ -1,6 +1,5 @@
 import { getDepositDetails } from "@/lib/lince-api";
-import { DepositView } from "@/components/app/deposit-view";
-import { DepositForm } from "@/components/app/deposit-form";
+import { DepositExperience } from "@/components/app/deposit-experience";
 import { Card } from "@/components/ui/card";
 
 // Server component. This folder route takes precedence over the [section] "Em breve" placeholder;
@@ -18,10 +17,8 @@ export default async function DepositPage() {
         </p>
       </div>
 
-      <DepositForm />
-
       {result.ok ? (
-        <DepositView details={result.data} />
+        <DepositExperience details={result.data} />
       ) : (
         <Card className="items-center gap-2 p-10 text-center">
           <p className="text-warm-300">Não foi possível carregar seus dados de depósito agora.</p>
