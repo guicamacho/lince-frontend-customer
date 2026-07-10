@@ -16,7 +16,6 @@ import { QRCodeSVG } from "qrcode.react";
 import { Check, Copy, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { DepositForm } from "@/components/app/deposit-form";
 import type { DepositDetails } from "@/lib/lince-api";
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -159,7 +158,7 @@ export function DepositExperience({ details }: { details: DepositDetails }) {
       {currency.id === "BRL" ? (
         <Card className="gap-4 p-6">
           <div>
-            <h2 className="font-medium text-warm-200">Pix Copia e Cola — qualquer valor</h2>
+            <h2 className="font-medium text-warm-200">Pix Copia e Cola</h2>
             <p className="mt-1 text-sm text-warm-400">
               Copie o código e pague no app do seu banco com o valor que quiser. Cai na hora, como
               R$ na sua conta.
@@ -186,14 +185,6 @@ export function DepositExperience({ details }: { details: DepositDetails }) {
           ) : (
             <p className="text-sm text-warm-500">Dados de PIX indisponíveis no momento.</p>
           )}
-          <details className="group rounded-lg border border-ink-500">
-            <summary className="cursor-pointer list-none px-4 py-3 text-sm text-warm-300 transition-colors hover:text-warm-100">
-              Precisa de um QR com valor definido? <span className="text-warm-500">(ex.: cobrança exata)</span>
-            </summary>
-            <div className="border-t border-ink-500 p-4">
-              <DepositForm />
-            </div>
-          </details>
         </Card>
       ) : (
         <Card className="gap-4 p-6">
