@@ -26,18 +26,15 @@ interface SessionRow {
 
 export function ProfileNameForm() {
   const { user } = useUser();
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
-
-  useEffect(() => {
-    if (user) {
-      setFirstName(user.firstName ?? "");
-      setLastName(user.lastName ?? "");
-    }
-  }, [user]);
-
   if (!user) return null;
+  // Keyed by user.id so state initializes from the loaded user (no sync-in-effect).
+  return <NameFields key={user.id} user={user} />;
+}
+
+function NameFields({ user }: { user: NonNullable<ReturnType<typeof useUser>["user"]> }) {
+  const [firstName, setFirstName] = useState(user.firstName ?? "");
+  const [lastName, setLastName] = useState(user.lastName ?? "");
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   return (
     <form
