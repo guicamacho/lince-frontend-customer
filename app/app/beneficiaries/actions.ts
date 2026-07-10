@@ -9,6 +9,13 @@ export async function createBeneficiaryAction(
   const parsed = beneficiarySchema.safeParse(values);
   if (!parsed.success) return { error: "Dados inválidos." };
   const res = await createBeneficiary(parsed.data);
-  if (!res.ok) return { error: res.error };
+  if (!res.ok) {
+    // Backend money-out gate: 2FA required to add a payee (defense in depth — the page
+    // already gates the form on enrollment).
+    if (res.error === "mfa_required") {
+      return { error: "Ative a verificação em duas etapas em Configurações para cadastrar beneficiários." };
+    }
+    return { error: res.error };
+  }
   return { ok: true };
 }

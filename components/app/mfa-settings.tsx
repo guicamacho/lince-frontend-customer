@@ -1,0 +1,194 @@
+"use client";
+
+/**
+ * Two-factor (MFA) enrollment — Clerk-managed TOTP (authenticator app) + passkeys.
+ * PRD-02 F3. 2FA is required to add a payee (money-out surface), so this is the enrollment
+ * surface the beneficiary flow points at. SMS is intentionally NOT offered (PRD-07 ruling).
+ */
+import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { QRCodeSVG } from "qrcode.react";
+import { Check, KeyRound, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+export function MfaSettings() {
+  const { user, isLoaded } = useUser();
+  if (!isLoaded || !user) return <p className="text-sm text-warm-500">Carregando…</p>;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2 text-sm">
+        {user.twoFactorEnabled ? (
+          <span className="inline-flex items-center gap-1.5 text-emerald-500">
+            <ShieldCheck className="size-4" aria-hidden /> Verificação em duas etapas ativa
+          </span>
+        ) : (
+          <span className="text-warm-400">Verificação em duas etapas não configurada</span>
+        )}
+      </div>
+      <TotpEnroll />
+      <PasskeyEnroll />
+      <p className="text-xs text-warm-500">
+        A verificação em duas etapas é exigida para cadastrar beneficiários (destinatários de
+        pagamentos).
+      </p>
+    </div>
+  );
+}
+
+function TotpEnroll() {
+  const { user } = useUser();
+  const [uri, setUri] = useState<string | null>(null);
+  const [secret, setSecret] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [backupCodes, setBackupCodes] = useState<string[] | null>(null);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const enrolled = user?.totpEnabled ?? false;
+
+  async function begin() {
+    setError(null);
+    setPending(true);
+    try {
+      const totp = await user!.createTOTP();
+      setUri(totp.uri ?? null);
+      setSecret(totp.secret ?? null);
+    } catch {
+      setError("Não foi possível iniciar. Talvez seja necessário entrar novamente.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  async function verify(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setPending(true);
+    try {
+      await user!.verifyTOTP({ code: code.trim() });
+      const bc = await user!.createBackupCode();
+      setBackupCodes(bc.codes ?? []);
+      setUri(null);
+      setSecret(null);
+      setCode("");
+    } catch {
+      setError("Código inválido. Verifique o app autenticador e tente novamente.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (enrolled && !backupCodes) {
+    return (
+      <div className="flex items-center gap-2 rounded-lg border border-ink-500 bg-ink-800 p-4 text-sm text-warm-300">
+        <Check className="size-4 text-emerald-500" aria-hidden />
+        App autenticador configurado.
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-lg border border-ink-500 bg-ink-800 p-4">
+      <h3 className="text-sm font-medium text-warm-200">App autenticador (TOTP)</h3>
+      {backupCodes ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-emerald-500">Verificação em duas etapas ativada.</p>
+          <p className="text-xs text-warm-400">
+            Guarde os códigos de backup abaixo em local seguro. Eles não serão mostrados novamente.
+          </p>
+          <ul className="grid grid-cols-2 gap-1 rounded-lg border border-ink-500 bg-ink-900 p-3 font-mono text-xs text-warm-200">
+            {backupCodes.map((c) => (
+              <li key={c}>{c}</li>
+            ))}
+          </ul>
+        </div>
+      ) : uri ? (
+        <div className="mt-3 space-y-3">
+          <p className="text-sm text-warm-400">
+            Escaneie o QR com seu app autenticador (Google Authenticator, 1Password, Authy…) e
+            digite o código de 6 dígitos.
+          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+            <div className="self-center rounded-lg bg-white p-3 sm:self-start" aria-label="QR de configuração">
+              <QRCodeSVG value={uri} size={148} marginSize={0} />
+            </div>
+            <div className="min-w-0 flex-1 space-y-3">
+              {secret && (
+                <p className="font-mono text-[11px] break-all text-warm-500">Chave: {secret}</p>
+              )}
+              <form onSubmit={verify} className="flex items-end gap-2">
+                <div>
+                  <label htmlFor="totp-code" className="text-xs font-medium tracking-wide text-warm-500 uppercase">
+                    Código
+                  </label>
+                  <input
+                    id="totp-code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    placeholder="000000"
+                    className="mt-1 w-32 rounded-lg border border-ink-500 bg-ink-900 px-3 py-2 font-mono text-sm text-warm-200 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  />
+                </div>
+                <Button type="submit" variant="outline" disabled={pending || code.trim().length < 6} className="cursor-pointer">
+                  {pending ? "Verificando…" : "Ativar"}
+                </Button>
+              </form>
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+        </div>
+      ) : (
+        <div className="mt-3 space-y-2">
+          <p className="text-sm text-warm-400">Use um app autenticador para gerar códigos de 6 dígitos.</p>
+          <Button type="button" variant="outline" onClick={begin} disabled={pending} className="cursor-pointer">
+            {pending ? "Abrindo…" : "Configurar app autenticador"}
+          </Button>
+          {error && <p className="text-sm text-red-400">{error}</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PasskeyEnroll() {
+  const { user } = useUser();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [added, setAdded] = useState(false);
+  const count = user?.passkeys?.length ?? 0;
+
+  async function add() {
+    setError(null);
+    setPending(true);
+    try {
+      await user!.createPasskey();
+      setAdded(true);
+    } catch {
+      setError("Não foi possível criar a passkey neste dispositivo.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="rounded-lg border border-ink-500 bg-ink-800 p-4">
+      <h3 className="flex items-center gap-1.5 text-sm font-medium text-warm-200">
+        <KeyRound className="size-4 text-warm-400" aria-hidden /> Passkey
+      </h3>
+      <p className="mt-1 text-sm text-warm-400">
+        {count > 0 || added
+          ? `${Math.max(count, added ? 1 : 0)} passkey(s) cadastrada(s). Você pode adicionar mais.`
+          : "Use biometria ou o desbloqueio do dispositivo em vez de códigos."}
+      </p>
+      <div className="mt-3">
+        <Button type="button" variant="outline" onClick={add} disabled={pending} className="cursor-pointer">
+          {pending ? "Aguardando…" : "Adicionar passkey"}
+        </Button>
+      </div>
+      {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+    </div>
+  );
+}
