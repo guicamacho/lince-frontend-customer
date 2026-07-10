@@ -1,24 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import { Search, Bell } from "lucide-react";
 
 /**
- * Dashboard top bar (mock TopBar) — ONLY for the active /app shell: greeting + name
- * on the left; search / bell / divider / account lockup on the right. The simpler
- * branded <TopBar> (logo + account) is used on onboarding + the under-review hold
- * screen instead. Search / bell are inert for now.
+ * Dashboard top bar — ONLY for the active /app shell: greeting (the COMPANY name, from
+ * /app/me via the layout) on the left; search / bell / divider / account lockup on the
+ * right. The account lockup links to /app/settings — Clerk's UserButton popover is gone
+ * (product decision 2026-07-10: account management lives in Configurações). Search is
+ * inert for now.
  */
-export function AppTopBar({ unreadCount = 0 }: { unreadCount?: number }) {
+export function AppTopBar({ unreadCount = 0, companyName }: { unreadCount?: number; companyName?: string }) {
   const { user } = useUser();
-  const firstName = user?.firstName ?? "Cliente";
+  const email = user?.primaryEmailAddress?.emailAddress ?? "";
+  const initial = (companyName ?? user?.firstName ?? "L").charAt(0).toUpperCase();
 
   return (
     <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-ink-500 bg-ink-900/80 px-5 py-5 backdrop-blur-md lg:px-9">
       <div>
         <div className="text-[13px] text-warm-400">Bem-vindo de volta</div>
-        <div className="font-display text-xl font-bold tracking-[-0.015em]">{firstName}</div>
+        <div className="font-display text-xl font-bold tracking-[-0.015em]">
+          {companyName ?? "Sua empresa"}
+        </div>
       </div>
 
       <div className="ml-auto flex items-center gap-2.5">
@@ -46,30 +50,24 @@ export function AppTopBar({ unreadCount = 0 }: { unreadCount?: number }) {
 
         <div className="mx-1.5 h-[26px] w-px bg-ink-500" />
 
-        <div className="flex items-center gap-2.5">
-          <UserButton
-            appearance={{
-              elements: {
-                userButtonAvatarBox: "size-9 isolate bg-gold-500 ring-1 ring-ink-500",
-                // ponytail: luminosity-blend Clerk's default avatar over gold-500 so it matches
-                // the brand gold. Ceiling: also gold-tints a real uploaded photo — fine here
-                // (email-OTP B2B, no photos); drop if photo/social login is enabled.
-                avatarImage: "mix-blend-luminosity",
-                userButtonPopoverCard: "border border-ink-500 bg-ink-700 shadow-xl",
-                userButtonPopoverFooter: "hidden",
-                // Clerk's account-management modal is off (2026-07-09): settings live at
-                // /app/settings. The popover keeps sign-out only.
-                userButtonPopoverActionButton__manageAccount: "hidden",
-              },
-            }}
-          />
-          <div className="hidden leading-tight sm:block">
-            <div className="text-[13px] font-bold whitespace-nowrap">{user?.fullName ?? "Sua conta"}</div>
-            <div className="text-[11px] whitespace-nowrap text-warm-500">
-              {user?.primaryEmailAddress?.emailAddress ?? ""}
-            </div>
-          </div>
-        </div>
+        <Link
+          href="/app/settings"
+          aria-label="Configurações da conta"
+          className="flex cursor-pointer items-center gap-2.5 rounded-[10px] px-1.5 py-1 transition-colors hover:bg-ink-800 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+        >
+          <span
+            className="flex size-9 items-center justify-center rounded-full bg-gold-500 font-display text-sm font-bold text-ink-900 ring-1 ring-ink-500"
+            aria-hidden
+          >
+            {initial}
+          </span>
+          <span className="hidden leading-tight sm:block">
+            <span className="block text-[13px] font-bold whitespace-nowrap">
+              {user?.fullName ?? "Sua conta"}
+            </span>
+            <span className="block text-[11px] whitespace-nowrap text-warm-500">{email}</span>
+          </span>
+        </Link>
       </div>
     </header>
   );
