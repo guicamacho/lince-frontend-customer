@@ -12,6 +12,7 @@
  * neutral monogram badges (no official vector available without a new dependency).
  */
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Check, Copy, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,46 +52,44 @@ function BrazilFlag() {
   );
 }
 
+// Official marks (spothq/cryptocurrency-icons, MIT).
 function TetherMark() {
   return (
-    <svg viewBox="0 0 24 24" className="size-6" role="img" aria-label="Tether">
-      <circle cx="12" cy="12" r="12" fill="#50AF95" />
+    <svg viewBox="0 0 32 32" className="size-6" role="img" aria-label="Tether USD">
+      <circle cx="16" cy="16" r="16" fill="#26A17B" />
       <path
-        fill="#fff"
-        transform="translate(4.8 4.8) scale(0.6)"
-        d="M18.7538 10.5176c0 .6251-2.2379 1.1483-5.2381 1.2812l.0028.0007c-.0848.0064-.5233.0325-1.5012.0325-.7778 0-1.33-.0233-1.5237-.0325-3.0059-.1322-5.2495-.6555-5.2495-1.2819s2.2436-1.149 5.2495-1.2834v2.0442c.1965.0142.7594.0474 1.5372.0474.9334 0 1.4008-.0389 1.4849-.0466V9.2356c2.9994.1337 5.2381.657 5.2381 1.282zm5.19.5466L12.1248 22.389a.1803.1803 0 0 1-.2496 0L.0562 11.0635a.1781.1781 0 0 1-.0382-.2079l4.3762-9.1921a.1767.1767 0 0 1 .1626-.1026h14.8878a.1768.1768 0 0 1 .1612.1032l4.3762 9.1922a.1782.1782 0 0 1-.0382.2079z"
+        fill="#FFF"
+        d="M17.922 17.383v-.002c-.11.008-.677.042-1.942.042-1.01 0-1.721-.03-1.971-.042v.003c-3.888-.171-6.79-.848-6.79-1.658 0-.809 2.902-1.486 6.79-1.66v2.644c.254.018.982.061 1.988.061 1.207 0 1.812-.05 1.925-.06v-2.643c3.88.173 6.775.85 6.775 1.658 0 .81-2.895 1.485-6.775 1.657m0-3.59v-2.366h5.414V7.819H8.595v3.608h5.414v2.365c-4.4.202-7.709 1.074-7.709 2.118 0 1.044 3.309 1.915 7.709 2.118v7.582h3.913v-7.584c4.393-.202 7.694-1.073 7.694-2.116 0-1.043-3.301-1.914-7.694-2.117"
       />
     </svg>
   );
 }
 
-function Monogram({ text, bg }: { text: string; bg: string }) {
+function UsdcMark() {
   return (
-    <span
-      className="flex size-6 items-center justify-center rounded-full text-[9px] font-bold text-white"
-      style={{ backgroundColor: bg }}
-      aria-hidden
-    >
-      {text}
-    </span>
+    <svg viewBox="0 0 32 32" className="size-6" role="img" aria-label="USD Coin">
+      <circle fill="#3E73C4" cx="16" cy="16" r="16" />
+      <g fill="#FFF">
+        <path d="M20.022 18.124c0-2.124-1.28-2.852-3.84-3.156-1.828-.243-2.193-.728-2.193-1.578 0-.85.61-1.396 1.828-1.396 1.097 0 1.707.364 2.011 1.275a.458.458 0 00.427.303h.975a.416.416 0 00.427-.425v-.06a3.04 3.04 0 00-2.743-2.489V9.142c0-.243-.183-.425-.487-.486h-.915c-.243 0-.426.182-.487.486v1.396c-1.829.242-2.986 1.456-2.986 2.974 0 2.002 1.218 2.791 3.778 3.095 1.707.303 2.255.668 2.255 1.639 0 .97-.853 1.638-2.011 1.638-1.585 0-2.133-.667-2.316-1.578-.06-.242-.244-.364-.427-.364h-1.036a.416.416 0 00-.426.425v.06c.243 1.518 1.219 2.61 3.23 2.914v1.457c0 .242.183.425.487.485h.915c.243 0 .426-.182.487-.485V21.34c1.829-.303 3.047-1.578 3.047-3.217z" />
+        <path d="M12.892 24.497c-4.754-1.7-7.192-6.98-5.424-11.653.914-2.55 2.925-4.491 5.424-5.402.244-.121.365-.303.365-.607v-.85c0-.242-.121-.424-.365-.485-.061 0-.183 0-.244.06a10.895 10.895 0 00-7.13 13.717c1.096 3.4 3.717 6.01 7.13 7.102.244.121.488 0 .548-.243.061-.06.061-.122.061-.243v-.85c0-.182-.182-.424-.365-.546zm6.46-18.936c-.244-.122-.488 0-.548.242-.061.061-.061.122-.061.243v.85c0 .243.182.485.365.607 4.754 1.7 7.192 6.98 5.424 11.653-.914 2.55-2.925 4.491-5.424 5.402-.244.121-.365.303-.365.607v.85c0 .242.121.424.365.485.061 0 .183 0 .244-.06a10.895 10.895 0 007.13-13.717c-1.096-3.46-3.778-6.07-7.13-7.162z" />
+      </g>
+    </svg>
   );
 }
 
 // --- catalog: what can be deposited, over which rails (Avenia supported-assets table) ---
 
-type CurrencyId = "BRL" | "BRLA" | "USDT" | "USDC";
+type CurrencyId = "BRL" | "USDT" | "USDC";
 
 const CURRENCIES: Array<{
   id: CurrencyId;
-  name: string;
   group: "fiat" | "crypto";
   icon: React.ReactNode;
   networks: Array<{ label: string; family: "TRON" | "EVM" }>;
 }> = [
-  { id: "BRL", name: "Real brasileiro · PIX", group: "fiat", icon: <BrazilFlag />, networks: [] },
+  { id: "BRL", group: "fiat", icon: <BrazilFlag />, networks: [] },
   {
     id: "USDT",
-    name: "Tether USD",
     group: "crypto",
     icon: <TetherMark />,
     // Protocol + human name (Binance/Bitso convention: users match the SOURCE platform's
@@ -103,23 +102,12 @@ const CURRENCIES: Array<{
   },
   {
     id: "USDC",
-    name: "USD Coin",
     group: "crypto",
-    icon: <Monogram text="USDC" bg="#2775CA" />,
+    icon: <UsdcMark />,
     networks: [
       { label: "Polygon", family: "EVM" },
       { label: "Ethereum (ERC-20)", family: "EVM" },
       { label: "Base", family: "EVM" },
-    ],
-  },
-  {
-    id: "BRLA",
-    name: "BRLA (real digital)",
-    group: "crypto",
-    icon: <Monogram text="R$" bg="#f2a93c" />,
-    networks: [
-      { label: "Polygon", family: "EVM" },
-      { label: "Ethereum", family: "EVM" },
     ],
   },
 ];
@@ -160,8 +148,7 @@ export function DepositExperience({ details }: { details: DepositDetails }) {
                   }`}
                 >
                   {c.icon}
-                  <span className="font-semibold">{c.id}</span>
-                  <span className="hidden text-warm-500 sm:inline">{c.name}</span>
+                  <span className="font-semibold">{c.id === "BRL" ? "PIX" : c.id}</span>
                 </button>
               ))}
             </div>
@@ -180,8 +167,13 @@ export function DepositExperience({ details }: { details: DepositDetails }) {
           </div>
           {details.brCode ? (
             <>
-              <div className="rounded-lg border border-ink-500 bg-ink-800 p-4">
-                <p className="font-mono text-xs leading-relaxed break-all text-warm-300">{details.brCode}</p>
+              <div className="flex flex-col gap-4 sm:flex-row">
+                <div className="self-center rounded-lg bg-white p-3 sm:self-start" aria-label="QR Code Pix">
+                  <QRCodeSVG value={details.brCode} size={164} marginSize={0} />
+                </div>
+                <div className="min-w-0 flex-1 rounded-lg border border-ink-500 bg-ink-800 p-4">
+                  <p className="font-mono text-xs leading-relaxed break-all text-warm-300">{details.brCode}</p>
+                </div>
               </div>
               <div>
                 <CopyButton value={details.brCode} label="Copiar código Pix" />

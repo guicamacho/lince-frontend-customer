@@ -6,6 +6,7 @@
  * ticket, so a double-click replays the SAME ticket instead of creating two.
  */
 import { useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import { Check, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -48,8 +49,13 @@ export function DepositForm() {
             {receipt.destAmount !== null && <> Você recebe {centavos(receipt.destAmount)} após as taxas.</>}
           </p>
         </div>
-        <div className="rounded-lg border border-ink-500 bg-ink-800 p-4">
-          <p className="font-mono text-xs leading-relaxed break-all text-warm-300">{receipt.brCode}</p>
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="self-center rounded-lg bg-white p-3 sm:self-start" aria-label="QR Code Pix">
+            <QRCodeSVG value={receipt.brCode} size={164} marginSize={0} />
+          </div>
+          <div className="min-w-0 flex-1 rounded-lg border border-ink-500 bg-ink-800 p-4">
+            <p className="font-mono text-xs leading-relaxed break-all text-warm-300">{receipt.brCode}</p>
+          </div>
         </div>
         <div className="flex items-center justify-between gap-4">
           <Button
