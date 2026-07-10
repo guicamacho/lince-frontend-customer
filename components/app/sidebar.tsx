@@ -42,7 +42,7 @@ const NAV = [
 export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
   const pathname = usePathname();
   return (
-    <aside className="sticky top-0 hidden h-screen w-[268px] shrink-0 flex-col border-r border-ink-500 bg-gradient-to-b from-ink-800/70 via-ink-900 to-ink-900 px-4 py-[22px] lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-[268px] shrink-0 flex-col border-r border-ink-500 [background:radial-gradient(130%_50%_at_50%_0%,rgba(242,169,60,0.08),transparent_62%),linear-gradient(180deg,var(--color-ink-700)_0%,var(--color-ink-900)_58%)] px-4 py-[22px] lg:flex">
       <Link
         href="/app"
         className="mb-6 mt-1 flex items-center gap-2.5 px-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -54,6 +54,22 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
       <nav className="flex flex-col gap-0.5">
         {NAV.map(({ href, label, icon: Icon, exact, comingSoon }) => {
           const active = exact ? pathname === href : pathname.startsWith(href);
+          if (comingSoon) {
+            // Inert: announced, not navigable.
+            return (
+              <div
+                key={href}
+                aria-disabled="true"
+                className="flex min-h-11 cursor-default items-center gap-3 rounded-xl px-3 py-[11px] text-[14.5px] font-medium text-warm-500 select-none"
+              >
+                <Icon className="size-[19px] text-warm-500" aria-hidden />
+                {label}
+                <span className="ml-auto rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-warm-500 uppercase">
+                  Em breve
+                </span>
+              </div>
+            );
+          }
           return (
             <Link
               key={href}
@@ -68,11 +84,6 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
             >
               <Icon className={cn("size-[19px]", active ? "text-gold-500" : "text-warm-400")} aria-hidden />
               {label}
-              {comingSoon && (
-                <span className="ml-auto rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-warm-500 uppercase">
-                  Em breve
-                </span>
-              )}
               {href === "/app/avisos" && unreadCount > 0 && (
                 <span
                   className="ml-auto rounded-full bg-gold-500/15 px-2 py-0.5 font-mono text-[10px] font-bold text-gold-400"
@@ -86,25 +97,25 @@ export function Sidebar({ unreadCount = 0 }: { unreadCount?: number }) {
         })}
       </nav>
 
-      {/* Lince Business Card promo — decorative card art in the background, inert CTA. */}
-      <div className="relative mt-auto overflow-hidden rounded-[18px] bg-ink-800 p-5 ring-1 ring-gold-500/30">
-        <div
-          aria-hidden
-          className="absolute -right-7 -top-9 h-[104px] w-[164px] rotate-[18deg] rounded-xl bg-gradient-to-br from-gold-400/35 via-gold-500/15 to-transparent ring-1 ring-gold-500/25"
-        >
-          <span className="absolute left-3 top-3 block h-[14px] w-[19px] rounded-[3px] bg-gold-500/50" />
-          <span className="absolute bottom-2.5 left-3 block font-display text-[10px] font-bold tracking-wide text-bone-100/40">
-            lince
-          </span>
-        </div>
-        <div className="relative">
+      {/* Lince Business Card promo — generated card art (public/lince-business-card.png,
+          Higgsfield 2026-07-10) behind a left-to-right legibility gradient; inert CTA. */}
+      <div className="relative mt-auto min-h-[164px] overflow-hidden rounded-[18px] bg-ink-800 ring-1 ring-gold-500/30">
+        <Image
+          src="/lince-business-card.png"
+          alt=""
+          fill
+          sizes="236px"
+          className="object-cover object-[70%_35%]"
+        />
+        <div aria-hidden className="absolute inset-0 bg-gradient-to-r from-ink-900/90 via-ink-900/55 to-transparent" />
+        <div className="relative p-5">
           <div className="font-display text-base leading-tight font-bold text-bone-100">
             Lince Business Card
           </div>
-          <p className="mt-1.5 text-[12.5px] text-warm-400">Sua empresa, sem fronteiras.</p>
+          <p className="mt-1.5 text-[12.5px] text-warm-300">Sua empresa, sem fronteiras.</p>
           <span
             aria-disabled="true"
-            className="mt-3.5 inline-flex min-h-9 cursor-default items-center rounded-[10px] bg-ink-700 px-3.5 text-[13px] font-bold text-warm-400 ring-1 ring-foreground/10 select-none"
+            className="mt-3.5 inline-flex min-h-9 cursor-default items-center rounded-[10px] bg-ink-900/70 px-3.5 text-[13px] font-bold text-gold-400 ring-1 ring-gold-500/30 backdrop-blur-sm select-none"
           >
             Em breve
           </span>
