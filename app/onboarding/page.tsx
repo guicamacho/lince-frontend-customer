@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
-import { getOnboardingState } from "@/lib/lince-api";
+import { getOnboardingState, getRfiThread } from "@/lib/lince-api";
 import { CompanyDetailsForm } from "@/components/onboarding/company-details-form";
 import { AdvanceButton } from "@/components/onboarding/advance-button";
 import { OnboardingProgress } from "@/components/onboarding/onboarding-progress";
+import { RfiThread } from "@/components/onboarding/rfi-thread";
 import { TopBar } from "@/components/top-bar";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -41,6 +42,8 @@ export default async function OnboardingPage() {
   }
   const state = result.state;
   if (state?.state === "active") redirect("/app");
+  // Only fetch the RFI thread when it's the relevant screen (avoids a round-trip otherwise).
+  const rfi = state?.state === "rfi_required" ? await getRfiThread() : null;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -80,10 +83,26 @@ export default async function OnboardingPage() {
 
         {state?.state === "rfi_required" && (
           <Screen title="Precisamos de mais informações">
-            <p className="text-warm-300">
-              Verifique seu e-mail para os detalhes. Quando estiver pronto, reinicie a verificação.
-            </p>
-            <AdvanceButton step="launch-verification" label="Reiniciar verificação" pendingLabel="Abrindo…" />
+            {rfi && rfi.case && rfi.messages.length > 0 ? (
+              <>
+                <p className="text-warm-300">
+                  Solicitamos algumas informações para dar continuidade à sua conta. Veja abaixo e
+                  responda por aqui.
+                </p>
+                <RfiThread messages={rfi.messages} closed={rfi.case.status === "closed"} />
+                <p className="pt-2 text-xs text-warm-500">
+                  Se for necessário refazer a verificação, use o botão abaixo.
+                </p>
+                <AdvanceButton step="launch-verification" label="Reiniciar verificação" pendingLabel="Abrindo…" />
+              </>
+            ) : (
+              <>
+                <p className="text-warm-300">
+                  Verifique seu e-mail para os detalhes. Quando estiver pronto, reinicie a verificação.
+                </p>
+                <AdvanceButton step="launch-verification" label="Reiniciar verificação" pendingLabel="Abrindo…" />
+              </>
+            )}
           </Screen>
         )}
 

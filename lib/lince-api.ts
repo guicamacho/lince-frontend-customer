@@ -77,6 +77,30 @@ export async function getMe(): Promise<Result<{ id: string; razao_social: string
   return toResult<{ id: string; razao_social: string; state: string }>(await authedFetch("/app/me"));
 }
 
+// --- RFI (EDD info request) — readable/repliable DURING onboarding (pre-active). ---
+export interface RfiMessage {
+  id: string;
+  author_type: "admin" | "customer" | "system";
+  body: string;
+  created_at: string;
+}
+export interface RfiThread {
+  case: { id: string; status: "open" | "closed" } | null;
+  messages: RfiMessage[];
+}
+
+export async function getRfiThread(): Promise<RfiThread | null> {
+  const res = await authedFetch("/onboarding/rfi");
+  if (!res.ok) return null;
+  return (await res.json()) as RfiThread;
+}
+
+export async function replyRfi(body: string): Promise<Result<{ id: string }>> {
+  return toResult<{ id: string }>(
+    await authedFetch("/onboarding/rfi/reply", { method: "POST", body: JSON.stringify({ body }) }),
+  );
+}
+
 /** The caller's org state (drives the onboarding + app shell gates).
  *  DISTINGUISHES "no org yet" (ok + null) from a failed read (ok: false — backend blip,
  *  401 during the post-sign-in handshake, timeout). Conflating the two once showed the
