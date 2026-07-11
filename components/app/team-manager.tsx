@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, Crown, Loader2 } from "lucide-react";
+import { UserPlus, Crown, Loader2, Send } from "lucide-react";
 import type { AccessRole, TeamMember } from "@/lib/lince-api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,15 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   inviteMemberAction,
+  resendInvitationAction,
   changeRoleAction,
   removeMemberAction,
   transferOwnershipAction,
 } from "@/app/app/team/actions";
+
+// Seconds the resend button stays disabled after a send. Keep in sync with the backend
+// INVITE_COOLDOWN_SECONDS (the server is the real gate; this is just the visual countdown).
+const RESEND_COOLDOWN_SECONDS = 60;
 
 const ROLE_LABEL: Record<AccessRole, string> = {
   owner: "Proprietário",
@@ -203,13 +208,36 @@ function MemberRow({
   onDone: () => void;
 }) {
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<"remove" | "transfer" | null>(null);
   const [pending, startTransition] = useTransition();
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(0);
   const isOwner = member.roles.includes("owner");
   const primaryRole = (member.roles[0] ?? "viewer") as AccessRole;
 
+  // Tick once a second only while a cooldown is active (no idle timer). `now` is seeded in
+  // startCooldown so the countdown is correct immediately without a setState inside the effect.
+  // When the window elapses, reset cooldownUntil to 0 so the effect tears the interval down —
+  // otherwise it would keep firing (and re-rendering) at 1Hz forever.
+  useEffect(() => {
+    if (cooldownUntil === 0) return;
+    const iv = setInterval(() => {
+      if (Date.now() >= cooldownUntil) setCooldownUntil(0);
+      else setNow(Date.now());
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [cooldownUntil]);
+  const resendLeft = cooldownUntil > now ? Math.ceil((cooldownUntil - now) / 1000) : 0;
+
+  function startCooldown() {
+    setNow(Date.now());
+    setCooldownUntil(Date.now() + RESEND_COOLDOWN_SECONDS * 1000);
+  }
+
   function run(fn: () => Promise<{ ok: true } | { error: string }>) {
     setError(null);
+    setInfo(null);
     startTransition(async () => {
       const res = await fn();
       if ("error" in res) {
@@ -218,6 +246,21 @@ function MemberRow({
       }
       setConfirm(null);
       onDone();
+    });
+  }
+
+  function onResend() {
+    setError(null);
+    setInfo(null);
+    startTransition(async () => {
+      const res = await resendInvitationAction(member.personId);
+      if ("error" in res) {
+        setError(res.error);
+        if (res.cooldown) startCooldown();
+        return;
+      }
+      setInfo("Convite reenviado.");
+      startCooldown();
     });
   }
 
@@ -237,6 +280,11 @@ function MemberRow({
         {error && (
           <p role="alert" className="mt-1 text-sm text-rose-400">
             {error}
+          </p>
+        )}
+        {info && !error && (
+          <p role="status" className="mt-1 text-sm text-emerald-400">
+            {info}
           </p>
         )}
       </div>
@@ -266,6 +314,22 @@ function MemberRow({
                 ariaLabel={`Papel de ${member.name}`}
                 onChange={(r) => run(() => changeRoleAction(member.personId, r))}
               />
+              {member.status === "invited" && (
+                <Button
+                  variant="outline"
+                  className="cursor-pointer"
+                  onClick={onResend}
+                  disabled={pending || resendLeft > 0}
+                  aria-label={`Reenviar convite para ${member.name}`}
+                >
+                  {pending ? (
+                    <Loader2 className="size-4 animate-spin" aria-hidden />
+                  ) : (
+                    <Send className="size-4" aria-hidden />
+                  )}
+                  {resendLeft > 0 ? `Reenviar (${resendLeft}s)` : "Reenviar"}
+                </Button>
+              )}
               {canTransferToThis && (
                 <Button
                   variant="outline"

@@ -113,6 +113,12 @@ export async function changeTeamMemberRole(personId: string, role: string): Prom
   );
 }
 
+export async function resendTeamInvitation(personId: string): Promise<Result<{ resent: boolean }>> {
+  return toResult<{ resent: boolean }>(
+    await authedFetch(`/app/team/members/${encodeURIComponent(personId)}/resend`, { method: "POST" }),
+  );
+}
+
 export async function removeTeamMember(personId: string): Promise<Result<{ removed: boolean }>> {
   return toResult<{ removed: boolean }>(
     await authedFetch(`/app/team/members/${encodeURIComponent(personId)}`, { method: "DELETE" }),

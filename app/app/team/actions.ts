@@ -2,6 +2,7 @@
 
 import {
   inviteTeamMember,
+  resendTeamInvitation,
   changeTeamMemberRole,
   removeTeamMember,
   transferTeamOwnership,
@@ -21,6 +22,8 @@ const MESSAGES: Record<string, string> = {
   cannot_transfer_to_self: "Você já é o proprietário.",
   not_owner: "Somente o proprietário pode transferir a propriedade.",
   step_up_required: "Confirme sua identidade novamente para concluir esta ação.",
+  member_not_invited: "Este membro já aceitou o convite.",
+  invite_cooldown: "Aguarde um momento antes de enviar outro convite para este e-mail.",
 };
 const msg = (code: string) => MESSAGES[code] ?? "Não foi possível concluir. Tente novamente.";
 
@@ -29,6 +32,15 @@ type ActionResult = { ok: true } | { error: string };
 export async function inviteMemberAction(email: string, role: string): Promise<ActionResult> {
   const res = await inviteTeamMember({ email, role });
   return res.ok ? { ok: true } : { error: msg(res.error) };
+}
+
+/** Resend flags the cooldown case so the UI can start its countdown on both success and 429. */
+export async function resendInvitationAction(
+  personId: string,
+): Promise<{ ok: true } | { error: string; cooldown?: boolean }> {
+  const res = await resendTeamInvitation(personId);
+  if (res.ok) return { ok: true };
+  return { error: msg(res.error), cooldown: res.error === "invite_cooldown" };
 }
 
 export async function changeRoleAction(personId: string, role: string): Promise<ActionResult> {
