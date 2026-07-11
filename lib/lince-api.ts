@@ -210,15 +210,15 @@ export async function lookupCnpj(
 export interface Beneficiary {
   id: string;
   label: string;
+  rail: string | null; // pix | ach | fedwire | sepa | swift | crypto
+  asset: string | null; // BRL | USD | EUR | GBP | USDC | USDT
+  network: string | null; // crypto chain, else null
+  dest_hint: string | null; // masked identifier tail (last 4)
   payee_legal_name: string | null;
   payee_country: string | null;
-  payee_bank_psp: string | null;
-  payee_account: string | null;
-  payee_memo: string | null;
   purpose_of_payment: string | null;
-  source_of_funds: string | null;
+  verification_status: string | null;
   status: string;
-  avenia_beneficiary_id: string | null;
   created_at: string;
 }
 
@@ -229,16 +229,20 @@ export async function listBeneficiaries(): Promise<Beneficiary[]> {
   return body.beneficiaries ?? [];
 }
 
-export async function createBeneficiary(input: {
+/** Rail-aware payload; the backend (rails.validateBeneficiary) is the authoritative wall. */
+export interface CreateBeneficiaryInput {
   label: string;
+  rail: string;
+  asset?: string; // required for swift/crypto; derived for the others
+  network?: string; // crypto only
   payeeLegalName: string;
-  payeeCountry: string;
-  payeeBankPsp: string;
-  payeeAccount: string;
-  payeeMemo?: string;
+  payeeCountry?: string; // asked for swift/crypto; derived for the fixed-country rails
   purposeOfPayment: string;
   sourceOfFunds?: string;
-}): Promise<Result<{ id: string }>> {
+  destination: Record<string, string>; // rail-specific identifier fields
+}
+
+export async function createBeneficiary(input: CreateBeneficiaryInput): Promise<Result<{ id: string }>> {
   return toResult<{ id: string }>(
     await authedFetch("/app/beneficiaries", { method: "POST", body: JSON.stringify(input) }),
   );

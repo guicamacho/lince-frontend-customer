@@ -1,26 +1,35 @@
 "use server";
 
-import { beneficiarySchema, type BeneficiaryInput } from "@/lib/schemas";
-import { createBeneficiary } from "@/lib/lince-api";
+import { createBeneficiary, type CreateBeneficiaryInput } from "@/lib/lince-api";
+
+// Backend rail-validation codes -> pt-BR. The backend (rails.validateBeneficiary) is the wall;
+// this maps its neutral codes. missing_<field>/invalid_<field> fall back to a generic line.
+const RAIL_ERROR_PT: Record<string, string> = {
+  invalid_rail: "Selecione um tipo de destino válido.",
+  invalid_pix_key_type: "Selecione o tipo de chave PIX.",
+  missing_pixKey: "Informe a chave PIX.",
+  invalid_routing_number: "Routing number inválido (9 dígitos).",
+  invalid_iban: "IBAN inválido.",
+  invalid_bic: "BIC / SWIFT inválido.",
+  invalid_swift_asset: "Moeda não suportada para SWIFT (USD, EUR ou GBP).",
+  invalid_swift_bic: "SWIFT / BIC inválido.",
+  missing_account: "Informe o IBAN ou o número da conta.",
+  invalid_crypto_asset: "Selecione USDT ou USDC.",
+  invalid_network: "Selecione uma rede válida para essa stablecoin.",
+  invalid_wallet_address: "Endereço de carteira inválido para a rede escolhida.",
+  mfa_required: "Ative a verificação em duas etapas em Configurações para cadastrar beneficiários.",
+  forbidden: "Seu papel não permite cadastrar beneficiários. Fale com um administrador da conta.",
+};
 
 export async function createBeneficiaryAction(
-  values: BeneficiaryInput,
+  input: CreateBeneficiaryInput,
 ): Promise<{ ok: true } | { error: string }> {
-  const parsed = beneficiarySchema.safeParse(values);
-  if (!parsed.success) return { error: "Dados inválidos." };
-  const res = await createBeneficiary(parsed.data);
+  const res = await createBeneficiary(input);
   if (!res.ok) {
-    // Backend money-out gate: 2FA required to add a payee (defense in depth — the page
-    // already gates the form on enrollment).
-    if (res.error === "mfa_required") {
-      return { error: "Ative a verificação em duas etapas em Configurações para cadastrar beneficiários." };
-    }
-    // PRD-03 role gate: viewer lacks manage_beneficiaries. The page already hides the form, but
-    // guard here too (defense in depth) without leaking the raw code.
-    if (res.error === "forbidden") {
-      return { error: "Seu papel não permite cadastrar beneficiários. Fale com um administrador da conta." };
-    }
-    return { error: res.error };
+    if (RAIL_ERROR_PT[res.error]) return { error: RAIL_ERROR_PT[res.error] };
+    if (res.error.startsWith("missing_")) return { error: "Preencha todos os campos obrigatórios." };
+    if (res.error.startsWith("invalid_") || res.error.startsWith("too_long_")) return { error: "Verifique os dados informados." };
+    return { error: "Não foi possível salvar o beneficiário. Tente novamente." };
   }
   return { ok: true };
 }

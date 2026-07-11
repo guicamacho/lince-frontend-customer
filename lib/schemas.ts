@@ -34,19 +34,8 @@ export type CompanyInput = z.infer<typeof companySchema>;
 export const CNPJ_ALREADY_REGISTERED_MSG =
   "Esta empresa já está cadastrada na Lince. Fale com o administrador da sua empresa para receber um convite, ou entre com a conta original (você pode recuperar a senha no login).";
 
-/** Beneficiary travel-rule capture (AUSTRAC §4). Tracing info Lince retains + forwards to Avenia. */
-export const beneficiarySchema = z.object({
-  label: z.string().trim().min(1, { message: "Informe um apelido" }),
-  payeeLegalName: z.string().trim().min(1, { message: "Informe o nome legal completo" }),
-  payeeCountry: z.string().trim().min(2, { message: "Informe o país (ex.: US)" }),
-  payeeBankPsp: z.string().trim().min(1, { message: "Informe o banco / PSP" }),
-  payeeAccount: z.string().trim().min(1, { message: "Informe a conta / IBAN / carteira" }),
-  payeeMemo: z.string().trim().optional(),
-  purposeOfPayment: z.string().trim().min(1, { message: "Informe a finalidade do pagamento" }),
-  sourceOfFunds: z.string().trim().optional(),
-});
-
-export type BeneficiaryInput = z.infer<typeof beneficiarySchema>;
+// Beneficiary capture moved to the rail-aware form (components/app/beneficiary-form.tsx +
+// lib/rails.ts); the backend (modules/beneficiaries/rails.ts) is the authoritative validator.
 
 /**
  * Customer reply to a staff-opened case (D1: reply-only — customers never open cases in v1).
