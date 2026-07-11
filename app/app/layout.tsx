@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { getOnboardingState, listNotifications, getMe } from "@/lib/lince-api";
 import { MfaBanner } from "@/components/app/mfa-banner";
+import { AvisosBanner } from "@/components/app/avisos-banner";
 import { Sidebar } from "@/components/app/sidebar";
 import { TopBar } from "@/components/top-bar";
 import { AppTopBar } from "@/components/app/app-top-bar";
@@ -76,8 +77,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="flex min-w-0 flex-1 flex-col">
         <AppTopBar unreadCount={unread} companyName={companyName} />
         <main className="mx-auto w-full max-w-[1320px] flex-1 px-5 py-8 lg:px-9 lg:pb-16">
-          {/* Client component: reads the full Clerk user (passkeys) and self-hides when MFA
-              (TOTP or passkey) is present. */}
+          {/* Unread avisos first (may carry an actionable ops request), then the MFA nudge.
+              Both self-hide (banner on /app/avisos + read state; MFA when a factor exists). */}
+          <AvisosBanner unread={unread} />
           <MfaBanner />
           {children}
         </main>
