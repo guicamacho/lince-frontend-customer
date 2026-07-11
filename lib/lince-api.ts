@@ -92,6 +92,8 @@ export interface TeamMember {
   email: string;
   roles: AccessRole[];
   status: "invited" | "active" | "suspended";
+  /** Seconds until this person can be re-invited (0 = ready). Seeds the resend countdown. */
+  cooldownRemaining: number;
 }
 
 export async function getTeam(): Promise<Result<{ members: TeamMember[] }>> {

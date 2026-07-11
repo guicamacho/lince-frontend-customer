@@ -230,10 +230,22 @@ function MemberRow({
   }, [cooldownUntil]);
   const resendLeft = cooldownUntil > now ? Math.ceil((cooldownUntil - now) / 1000) : 0;
 
-  function startCooldown() {
+  function startCooldown(seconds = RESEND_COOLDOWN_SECONDS) {
     setNow(Date.now());
-    setCooldownUntil(Date.now() + RESEND_COOLDOWN_SECONDS * 1000);
+    setCooldownUntil(Date.now() + seconds * 1000);
   }
+
+  // Seed the countdown from the server's remaining cooldown after mount, so the button greys with
+  // a live countdown from page load (e.g. right after inviting), not only after a click. Must run
+  // client-side (the wall clock differs from SSR, so it can't be derived during render without a
+  // hydration mismatch) — the canonical use of a mount effect, hence the targeted suppressions.
+  useEffect(() => {
+    if (member.cooldownRemaining <= 0) return;
+    const until = Date.now() + member.cooldownRemaining * 1000;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- client-only clock sync on mount
+    setNow(Date.now());
+    setCooldownUntil(until);
+  }, [member.cooldownRemaining]);
 
   function run(fn: () => Promise<{ ok: true } | { error: string }>) {
     setError(null);
