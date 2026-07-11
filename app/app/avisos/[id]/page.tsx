@@ -1,14 +1,19 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { getCaseThread, listNotifications } from "@/lib/lince-api";
+import { getCaseThread, getCaseDocuments, listNotifications } from "@/lib/lince-api";
 import { CaseReplyForm } from "@/components/app/case-reply-form";
+import { DocumentUpload } from "@/components/app/document-upload";
 import { MarkRead } from "@/components/app/mark-read";
 import { caseTypeLabel, caseStatusLabel, formatDateTime } from "@/lib/case-labels";
 import { cn } from "@/lib/utils";
 
 export default async function AvisoThreadPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const [thread, { notifications }] = await Promise.all([getCaseThread(id), listNotifications()]);
+  const [thread, { notifications }, documents] = await Promise.all([
+    getCaseThread(id),
+    listNotifications(),
+    getCaseDocuments(id),
+  ]);
 
   const backLink = (
     <Link
@@ -98,6 +103,9 @@ export default async function AvisoThreadPage({ params }: { params: Promise<{ id
           <CaseReplyForm caseId={c.id} />
         </div>
       )}
+
+      {/* Document upload attaches to this request (EDD/RFI). Shown for open cases only. */}
+      {!closed && <DocumentUpload caseId={c.id} documents={documents} />}
     </div>
   );
 }

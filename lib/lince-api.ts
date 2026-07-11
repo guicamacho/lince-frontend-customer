@@ -369,6 +369,43 @@ export async function getCaseThread(id: string): Promise<CustomerCaseThread | nu
   return (await res.json()) as CustomerCaseThread;
 }
 
+// --- Document uploads (EDD/RFI). No-retention: the file streams to Didit (mock); Lince keeps
+//     only a reference. Real submission is gated on Didit — see the "em preparação" note. ---
+export interface DocumentRef {
+  id: string;
+  filename: string;
+  contentType: string;
+  sizeBytes: number;
+  status: "received" | "forwarded" | "failed";
+  createdAt: string;
+}
+
+export async function getCaseDocuments(caseId: string): Promise<DocumentRef[]> {
+  const res = await authedFetch(`/app/cases/${caseId}/documents`);
+  if (!res.ok) return [];
+  const body = (await res.json().catch(() => ({}))) as { documents?: DocumentRef[] };
+  return body.documents ?? [];
+}
+
+/** Forwards the raw bytes as octet-stream (filename/type in headers) — the backend streams them
+ *  to Didit and stores only a reference. */
+export async function uploadCaseDocument(
+  caseId: string,
+  file: { name: string; type: string; buffer: ArrayBuffer },
+): Promise<Result<DocumentRef>> {
+  return toResult<DocumentRef>(
+    await authedFetch(`/app/cases/${caseId}/documents`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/octet-stream",
+        "x-filename": encodeURIComponent(file.name),
+        "x-content-type": file.type,
+      },
+      body: file.buffer,
+    }),
+  );
+}
+
 export async function postCaseReply(caseId: string, body: string): Promise<Result<{ id: string }>> {
   return toResult<{ id: string }>(
     await authedFetch(`/app/cases/${caseId}/messages`, {
