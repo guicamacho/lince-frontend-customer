@@ -15,6 +15,11 @@ export async function createBeneficiaryAction(
     if (res.error === "mfa_required") {
       return { error: "Ative a verificação em duas etapas em Configurações para cadastrar beneficiários." };
     }
+    // PRD-03 role gate: viewer lacks manage_beneficiaries. The page already hides the form, but
+    // guard here too (defense in depth) without leaking the raw code.
+    if (res.error === "forbidden") {
+      return { error: "Seu papel não permite cadastrar beneficiários. Fale com um administrador da conta." };
+    }
     return { error: res.error };
   }
   return { ok: true };

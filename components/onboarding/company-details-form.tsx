@@ -19,6 +19,12 @@ export function CompanyDetailsForm() {
     loading: false,
     note: null,
   });
+  // Manual-entry fallback (PRD-01 G19): when the Receita lookup is UNAVAILABLE (outage /
+  // timeout), razão social becomes editable so the outage can't block signup. Definitive
+  // negatives (CNPJ inválido/não encontrado) keep the field locked — the CNPJ is the problem.
+  // Bootstrap re-validates the CNPJ but does NOT cross-check razão social against it, so the
+  // field must be cleared on any lookup failure (see handleCnpjBlur error branch).
+  const [manualEntry, setManualEntry] = useState(false);
   const {
     register,
     handleSubmit,
@@ -37,9 +43,16 @@ export function CompanyDetailsForm() {
     setCnpjLookup({ loading: true, note: null });
     const res = await lookupCnpjAction(digits);
     if ("error" in res) {
+      // Clear any stale razão social from a prior successful lookup FIRST: bootstrap does not
+      // re-derive the name from the CNPJ, so a leftover value would let company A's name ship
+      // with company B's CNPJ. Empty + min(1) blocks submit on a definitive-negative (locked
+      // field); on the outage path it gives the user a blank field to type into.
+      setValue("razaoSocial", "", { shouldValidate: true, shouldDirty: true });
+      setManualEntry(!!res.unavailable);
       setCnpjLookup({ loading: false, note: res.error });
       return;
     }
+    setManualEntry(false);
     setValue("razaoSocial", res.razaoSocial, { shouldValidate: true, shouldDirty: true });
     // Duplicate feedback beats the situação note; submit stays enabled — the backend re-checks.
     const note = res.alreadyRegistered
@@ -91,15 +104,17 @@ export function CompanyDetailsForm() {
             <Label htmlFor="razaoSocial">Razão social</Label>
             <Input
               id="razaoSocial"
-              placeholder="Preenchido pelo CNPJ"
-              readOnly
-              aria-readonly
-              className="cursor-default"
+              placeholder={manualEntry ? "Digite a razão social" : "Preenchido pelo CNPJ"}
+              readOnly={!manualEntry}
+              aria-readonly={!manualEntry}
+              className={manualEntry ? undefined : "cursor-default"}
               aria-invalid={!!errors.razaoSocial}
               {...register("razaoSocial")}
             />
             {errors.razaoSocial ? (
               <p className="text-sm text-clay-500">{errors.razaoSocial.message}</p>
+            ) : manualEntry ? (
+              <p className="text-xs text-warm-400">Consulta indisponível — digite a razão social como no CNPJ.</p>
             ) : (
               <p className="text-xs text-warm-400">Preenchido automaticamente pela busca do CNPJ.</p>
             )}

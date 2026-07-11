@@ -72,9 +72,57 @@ export async function getBalances(): Promise<Result<{ balances: Record<string, n
   return toResult<{ balances: Record<string, number> }>(await authedFetch("/app/balances"));
 }
 
-/** The caller's company (id + razão social + state) — the Configurações page reads it. */
-export async function getMe(): Promise<Result<{ id: string; razao_social: string; state: string }>> {
-  return toResult<{ id: string; razao_social: string; state: string }>(await authedFetch("/app/me"));
+/** The caller's company + their access roles (KYB tags never leave the backend). */
+export interface Me {
+  id: string;
+  razao_social: string;
+  state: string;
+  roles: AccessRole[];
+}
+export async function getMe(): Promise<Result<Me>> {
+  return toResult<Me>(await authedFetch("/app/me"));
+}
+
+// --- Equipe (PRD-03): list, invite, role change, remove, transfer. Authorization is
+//     server-side; the UI only hides controls the backend would 403 anyway. ---
+export type AccessRole = "owner" | "admin" | "finance" | "viewer";
+export interface TeamMember {
+  personId: string;
+  name: string;
+  email: string;
+  roles: AccessRole[];
+  status: "invited" | "active" | "suspended";
+}
+
+export async function getTeam(): Promise<Result<{ members: TeamMember[] }>> {
+  return toResult<{ members: TeamMember[] }>(await authedFetch("/app/team"));
+}
+
+export async function inviteTeamMember(input: { email: string; role: string }): Promise<Result<TeamMember>> {
+  return toResult<TeamMember>(
+    await authedFetch("/app/team/invitations", { method: "POST", body: JSON.stringify(input) }),
+  );
+}
+
+export async function changeTeamMemberRole(personId: string, role: string): Promise<Result<{ roles: AccessRole[] }>> {
+  return toResult<{ roles: AccessRole[] }>(
+    await authedFetch(`/app/team/members/${encodeURIComponent(personId)}/role`, {
+      method: "POST",
+      body: JSON.stringify({ role }),
+    }),
+  );
+}
+
+export async function removeTeamMember(personId: string): Promise<Result<{ removed: boolean }>> {
+  return toResult<{ removed: boolean }>(
+    await authedFetch(`/app/team/members/${encodeURIComponent(personId)}`, { method: "DELETE" }),
+  );
+}
+
+export async function transferTeamOwnership(toPersonId: string): Promise<Result<{ transferred: boolean }>> {
+  return toResult<{ transferred: boolean }>(
+    await authedFetch("/app/team/transfer-ownership", { method: "POST", body: JSON.stringify({ toPersonId }) }),
+  );
 }
 
 // --- RFI (EDD info request) — readable/repliable DURING onboarding (pre-active). ---

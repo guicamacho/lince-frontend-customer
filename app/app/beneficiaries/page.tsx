@@ -1,8 +1,15 @@
-import { listBeneficiaries } from "@/lib/lince-api";
+import { listBeneficiaries, getMe } from "@/lib/lince-api";
 import { BeneficiaryGate } from "@/components/app/beneficiary-gate";
+import { Card } from "@/components/ui/card";
+import { Lock } from "lucide-react";
 
 export default async function BeneficiariesPage() {
   const beneficiaries = await listBeneficiaries();
+  // PRD-03: manage_beneficiaries is owner|admin|finance (not viewer). Hide the form from viewers so
+  // they don't discover the 403 after submitting; the list stays visible. Backend still enforces.
+  const me = await getMe();
+  const canManage =
+    !me.ok || me.data.roles.some((r) => r === "owner" || r === "admin" || r === "finance");
 
   return (
     <div className="max-w-3xl space-y-8">
@@ -51,7 +58,21 @@ export default async function BeneficiariesPage() {
         </div>
       )}
 
-      <BeneficiaryGate />
+      {canManage ? (
+        <BeneficiaryGate />
+      ) : (
+        <Card className="gap-3 p-6">
+          <div className="flex items-start gap-3">
+            <Lock className="mt-0.5 size-5 shrink-0 text-warm-500" aria-hidden />
+            <div>
+              <h2 className="font-medium text-warm-200">Apenas leitura</h2>
+              <p className="mt-1 text-sm text-warm-400">
+                Seu papel não permite cadastrar beneficiários. Fale com um administrador da conta.
+              </p>
+            </div>
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

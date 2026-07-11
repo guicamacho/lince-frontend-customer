@@ -52,16 +52,22 @@ export async function advanceAction(
 /** Look up public Receita data (razão social + situação) for a CNPJ via BrasilAPI, to pre-fill the form. */
 export async function lookupCnpjAction(
   cnpj: string,
-): Promise<{ razaoSocial: string; ativa: boolean; alreadyRegistered?: boolean } | { error: string }> {
+): Promise<{ razaoSocial: string; ativa: boolean; alreadyRegistered?: boolean } | { error: string; unavailable?: boolean }> {
   const digits = cnpj.replace(/\D/g, "");
   if (digits.length !== 14) return { error: "CNPJ inválido." };
 
   // Authenticated callers only — don't expose this as an open CNPJ proxy.
   if (!(await currentUser())) return { error: "Sessão expirada. Entre novamente." };
 
-  // Lookup now lives server-side in the backend (BrasilAPI moved off the customer app);
-  // map its neutral error codes to the pt-BR strings. Razão social stays editable = manual fallback.
+  // Lookup lives server-side (BrasilAPI moved off the customer app); map neutral codes to pt-BR.
   const res = await lookupCnpj(digits);
-  if (!res.ok) return { error: CNPJ_ERROR_PT[res.error] ?? "Não foi possível consultar o CNPJ agora." };
-  return res.data;
+  if (res.ok) return res.data;
+  // Definitive data-negatives (invalid/not-found/no-name) are NOT a fallback case — the CNPJ
+  // itself is the problem, and bootstrap re-validates. A service outage (unavailable / rate-limited
+  // / any unmapped code) is: let the user type razão social manually so an outage can't block signup.
+  const unavailable = !(res.error in CNPJ_ERROR_PT);
+  return {
+    error: CNPJ_ERROR_PT[res.error] ?? "Não foi possível consultar o CNPJ agora. Informe a razão social manualmente.",
+    unavailable,
+  };
 }

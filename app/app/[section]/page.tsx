@@ -7,7 +7,6 @@ const TITLES: Record<string, string> = {
   convert: "Converter",
   payouts: "Pagamentos",
   transactions: "Transações",
-  team: "Equipe",
   rewards: "Recompensas",
 };
 
