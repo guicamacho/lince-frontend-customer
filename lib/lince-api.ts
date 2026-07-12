@@ -72,6 +72,19 @@ export async function getBalances(): Promise<Result<{ balances: Record<string, n
   return toResult<{ balances: Record<string, number> }>(await authedFetch("/app/balances"));
 }
 
+// --- Câmbio (display FX). Bare Avenia stablecoin rate (BRLA<>USDT / BRLA>EUR) checked against
+//     mid-market; any leg can be null (unavailable/suspect). BRL per 1 unit of USD/EUR. ---
+export interface Rates {
+  brlUsd: { buy: number | null; sell: number | null; mid: number | null };
+  brlEur: { buy: number | null; mid: number | null };
+  updatedAt: string;
+}
+export async function getRates(): Promise<Rates | null> {
+  const res = await authedFetch("/app/rates");
+  if (!res.ok) return null;
+  return (await res.json()) as Rates;
+}
+
 /** The caller's company + their access roles (KYB tags never leave the backend). */
 export interface Me {
   id: string;

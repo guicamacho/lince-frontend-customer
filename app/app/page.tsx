@@ -1,42 +1,26 @@
 import Link from "next/link";
 import { Send, Repeat } from "lucide-react";
-import { SampleBanner } from "@/components/app/sample-banner";
-import { WalletCard } from "@/components/app/wallet-card";
+import { WalletCards } from "@/components/app/wallet-cards";
+import { SaldoDisponivel } from "@/components/app/saldo-disponivel";
+import { CambioWidget } from "@/components/app/cambio-widget";
 import { BalanceChart } from "@/components/app/balance-chart";
-import { TxTable } from "@/components/app/tx-table";
-import { AttentionRail } from "@/components/app/attention-rail";
+import { TransactionsView } from "@/components/app/transactions-view";
 import { SafeguardingPanel } from "@/components/app/safeguarding-panel";
-import { wallets } from "@/lib/sample-home";
-import { getBalances } from "@/lib/lince-api";
+import { getBalances, getRates, listTransactions } from "@/lib/lince-api";
 
-// HomeView. The hero balance is REAL (ledger, settled money only); the sections
-// below are still SAMPLE data — see lib/sample-home / SampleBanner.
+// HomeView — live. Balances + recent transactions are REAL (ledger); Câmbio is the bare Avenia
+// stablecoin rate checked against mid-market. Approvals section removed (pre-go-live).
 export default async function AppHome() {
-  const res = await getBalances();
-  const brlaMinor = res.ok ? (res.data.balances.BRLA ?? 0) : null;
-  const formatted =
-    brlaMinor === null
-      ? { whole: "—", fraction: "" }
-      : {
-          whole: `R$ ${Math.trunc(brlaMinor / 100).toLocaleString("pt-BR")}`,
-          fraction: `,${String(brlaMinor % 100).padStart(2, "0")}`,
-        };
-  return (
-    <div className="space-y-4">
-      <SampleBanner />
+  const [balancesRes, rates, txRes] = await Promise.all([getBalances(), getRates(), listTransactions()]);
+  const balances = balancesRes.ok ? balancesRes.data.balances : {};
+  const brlaMinor = balancesRes.ok ? (balances.BRLA ?? 0) : null;
+  const recent = txRes.ok ? txRes.data.slice(0, 6) : [];
 
-      {/* Real balance + primary actions */}
-      <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="font-mono text-[11px] font-bold uppercase tracking-[0.16em] text-gold-500">
-            Saldo disponível
-          </div>
-          <div className="mt-2 font-display text-[40px] leading-none font-bold tracking-[-0.03em] tabular-nums sm:text-[48px]">
-            {formatted.whole}
-            <span className="font-sans text-[22px] font-semibold text-warm-400">{formatted.fraction}</span>
-          </div>
-          <div className="mt-2.5 text-sm text-warm-500">Custódia Avenia · atualizado após cada confirmação</div>
-        </div>
+  return (
+    <div className="space-y-6">
+      {/* Real balance + toggle + primary actions */}
+      <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
+        <SaldoDisponivel brlaMinor={brlaMinor} brlPerUsd={rates?.brlUsd.mid ?? null} />
         <div className="flex gap-2.5">
           <Link
             href="/app/payouts"
@@ -55,23 +39,31 @@ export default async function AppHome() {
         </div>
       </div>
 
-      {/* Wallet cards */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {wallets.map((w) => (
-          <WalletCard key={w.title} {...w} />
-        ))}
-      </div>
+      <WalletCards balances={balances} />
 
-      {/* Chart + transactions (left) · attention rail (right) */}
-      <div className="mt-4 grid gap-4 lg:grid-cols-[1.7fr_1fr] lg:items-start">
+      {/* Chart + recent transactions (left) · Câmbio (right) */}
+      <div className="grid gap-4 lg:grid-cols-[1.7fr_1fr] lg:items-start">
         <div className="flex flex-col gap-4">
           <BalanceChart />
-          <TxTable />
+          <div>
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-display text-base font-bold">Transações recentes</h2>
+              <Link href="/app/transactions" className="text-sm text-gold-500 transition-colors hover:text-gold-400">
+                Ver todas
+              </Link>
+            </div>
+            {recent.length > 0 ? (
+              <TransactionsView transactions={recent} />
+            ) : (
+              <div className="rounded-[18px] bg-ink-800 p-8 text-center text-sm text-warm-500 ring-1 ring-foreground/10">
+                Nenhuma transação ainda.
+              </div>
+            )}
+          </div>
         </div>
-        <AttentionRail />
+        <CambioWidget initial={rates} />
       </div>
 
-      {/* BRLA-safeguarding disclosure — kept visible wherever balances are shown. */}
       <SafeguardingPanel />
     </div>
   );
