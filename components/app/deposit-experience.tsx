@@ -178,8 +178,8 @@ export function DepositExperience({ details }: { details: DepositDetails }) {
                 <CopyButton value={details.brCode} label="Copiar código Pix" />
               </div>
               <p className="text-xs text-warm-500">
-                No seu banco, o recebedor aparece como <strong>Brla Digital Ltda</strong> — a
-                custodiante da sua conta (Avenia).
+                No seu banco, o recebedor aparece como <strong>Brla Digital Ltda</strong>, a
+                instituição custodiante da sua conta.
               </p>
             </>
           ) : (
@@ -236,8 +236,7 @@ export function DepositExperience({ details }: { details: DepositDetails }) {
       )}
 
       <p className="text-xs text-warm-500">
-        Conta custodiada pela Avenia. Depósitos aparecem em Transações e no seu saldo após a
-        confirmação.
+        Depósitos aparecem em Transações e no seu saldo após a confirmação.
       </p>
     </div>
   );

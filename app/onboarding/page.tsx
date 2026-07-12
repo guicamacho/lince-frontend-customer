@@ -56,7 +56,7 @@ export default async function OnboardingPage() {
         {state?.state === "pending_lince_approval" && (
           <Screen title="Vamos verificar sua empresa">
             <p className="text-warm-300">
-              A verificação de identidade e da empresa (KYB) é conduzida pela Didit e enviada à Avenia.
+              A verificação de identidade e da empresa (KYB) é conduzida pela Didit.
             </p>
             <AdvanceButton step="launch-verification" label="Iniciar verificação" pendingLabel="Abrindo…" />
           </Screen>
@@ -65,7 +65,7 @@ export default async function OnboardingPage() {
         {state?.state === "kyb_in_progress" && (
           <Screen title="Verificação em andamento">
             <p className="text-warm-300">
-              Conclua as etapas na janela da Didit. Ao finalizar, seus dados são enviados automaticamente à Avenia.
+              Conclua as etapas na janela da Didit. Ao finalizar, a verificação é processada automaticamente.
             </p>
             <AdvanceButton step="mock-verify" label="Simular conclusão (dev)" pendingLabel="Concluindo…" />
           </Screen>

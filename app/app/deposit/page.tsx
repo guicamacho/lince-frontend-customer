@@ -13,7 +13,7 @@ export default async function DepositPage() {
       <div>
         <h1 className="font-display text-2xl">Depositar</h1>
         <p className="mt-1 text-sm text-warm-400">
-          Envie um PIX e o valor entra como saldo em reais (R$) na sua conta. Custódia Avenia.
+          Envie um PIX e o valor entra como saldo em reais (R$) na sua conta.
         </p>
       </div>
 

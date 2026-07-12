@@ -15,7 +15,7 @@ export function SafeguardingPanel() {
     >
       <ShieldCheck className="mt-0.5 size-4 shrink-0 text-warm-400" aria-hidden />
       <p className="text-sm leading-relaxed text-warm-300">
-        Seus fundos são mantidos pela Avenia como um saldo em stablecoin. Não são um depósito
+        Seus fundos são mantidos em custódia como um saldo em stablecoin. Não são um depósito
         bancário e não contam com garantia do FGC.
       </p>
     </section>

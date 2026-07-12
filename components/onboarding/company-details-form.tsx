@@ -167,8 +167,7 @@ export function CompanyDetailsForm() {
                 {...register("consentAccepted")}
               />
               <span className="leading-snug">
-                Li e aceito os <span className="text-gold-500">Termos da Avenia</span>, os{" "}
-                <span className="text-gold-500">Termos da Lince</span> e o{" "}
+                Li e aceito os <span className="text-gold-500">Termos de Serviço</span> e o{" "}
                 <span className="text-gold-500">Consentimento LGPD</span>.
               </span>
             </label>

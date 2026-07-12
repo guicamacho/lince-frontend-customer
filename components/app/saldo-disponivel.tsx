@@ -63,7 +63,7 @@ export function SaldoDisponivel({ brlaMinor, brlPerUsd }: { brlaMinor: number | 
         )}
       </div>
       <div className="mt-2.5 text-sm text-warm-500">
-        {showUsd ? "Convertido pela taxa de mercado · " : "Custódia Avenia · "}
+        {showUsd ? "Convertido pela taxa de mercado · " : "Em custódia · "}
         atualizado após cada confirmação
       </div>
     </div>

@@ -2,7 +2,6 @@ import Link from "next/link";
 import { SignUp } from "@clerk/nextjs";
 import { MailCheck } from "lucide-react";
 import { AuthShell } from "@/components/auth/auth-shell";
-import { PoweredByAvenia } from "@/components/powered-by-avenia";
 
 // Team-invite deep links arrive as /sign-up?invited=<email>&__clerk_ticket=... (the backend puts
 // the email in the redirect URL — the ticket JWT doesn't carry it). Shown as a read-only
@@ -24,15 +23,12 @@ export default async function SignUpPage({
   return (
     <AuthShell
       footer={
-        <>
-          <p>
-            Já tem uma conta?{" "}
-            <Link href="/sign-in" className="font-medium text-gold-500 transition-colors hover:text-gold-400">
-              Entrar
-            </Link>
-          </p>
-          <PoweredByAvenia />
-        </>
+        <p>
+          Já tem uma conta?{" "}
+          <Link href="/sign-in" className="font-medium text-gold-500 transition-colors hover:text-gold-400">
+            Entrar
+          </Link>
+        </p>
       }
     >
       {invitedEmail && (

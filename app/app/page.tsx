@@ -53,7 +53,7 @@ export default async function AppHome() {
               </Link>
             </div>
             {recent.length > 0 ? (
-              <TransactionsView transactions={recent} />
+              <TransactionsView transactions={recent} compact />
             ) : (
               <div className="rounded-[18px] bg-ink-800 p-8 text-center text-sm text-warm-500 ring-1 ring-foreground/10">
                 Nenhuma transação ainda.

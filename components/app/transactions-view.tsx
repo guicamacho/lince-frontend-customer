@@ -99,7 +99,8 @@ function heldValue(t: Transaction): number {
 type SortKey = "date" | "held";
 type SortDir = "asc" | "desc";
 
-export function TransactionsView({ transactions }: { transactions: Transaction[] }) {
+// compact = dashboard embed: drop the count + CSV-export bar (this is a dashboard, not the full page).
+export function TransactionsView({ transactions, compact = false }: { transactions: Transaction[]; compact?: boolean }) {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -195,19 +196,21 @@ export function TransactionsView({ transactions }: { transactions: Transaction[]
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div className="text-sm text-warm-400">
-          {transactions.length} {transactions.length === 1 ? "transação" : "transações"}
+      {!compact && (
+        <div className="flex items-center justify-between gap-4">
+          <div className="text-sm text-warm-400">
+            {transactions.length} {transactions.length === 1 ? "transação" : "transações"}
+          </div>
+          <button
+            type="button"
+            onClick={exportCsv}
+            className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[10px] bg-ink-700 px-4 text-[13px] font-semibold text-warm-100 outline-none transition-colors hover:bg-ink-600 focus-visible:ring-3 focus-visible:ring-ring/50"
+          >
+            <Download className="size-4" aria-hidden />
+            Exportar CSV
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={exportCsv}
-          className="inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-[10px] bg-ink-700 px-4 text-[13px] font-semibold text-warm-100 outline-none transition-colors hover:bg-ink-600 focus-visible:ring-3 focus-visible:ring-ring/50"
-        >
-          <Download className="size-4" aria-hidden />
-          Exportar CSV
-        </button>
-      </div>
+      )}
 
       <div className="overflow-x-auto rounded-[18px] bg-ink-800 ring-1 ring-foreground/10">
         <table className="w-full min-w-[760px] text-sm">
