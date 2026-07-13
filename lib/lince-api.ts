@@ -67,6 +67,26 @@ export async function createDeposit(input: { amountBrl: string; idemKey: string 
   );
 }
 
+// Convert (PRD-10): standalone swap of the customer's own balance. from/to are ledger currency
+// codes (BRLA/USDT); amount is a decimal string in the source currency. idemKey binds the request.
+export interface ConvertReceipt {
+  id: string;
+  state: string;
+  fromCurrency: string;
+  toCurrency: string;
+  sourceAmount: number; // minor units of the source currency
+  destAmount: number | null;
+  fees: Array<{ label: string; amount: number; currency: string; rebatable: boolean }>;
+}
+
+export async function convertCurrency(
+  input: { from: string; to: string; amount: string; idemKey: string },
+): Promise<Result<ConvertReceipt>> {
+  return toResult<ConvertReceipt>(
+    await authedFetch("/app/convert", { method: "POST", body: JSON.stringify(input) }),
+  );
+}
+
 /** Ledger balances (minor units per currency) — settled money only. */
 export async function getBalances(): Promise<Result<{ balances: Record<string, number> }>> {
   return toResult<{ balances: Record<string, number> }>(await authedFetch("/app/balances"));
