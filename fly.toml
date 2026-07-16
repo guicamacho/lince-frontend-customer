@@ -9,7 +9,10 @@ primary_region = "gru"
 [env]
   NODE_ENV = "production"
   PORT = "3000"
-  LINCE_API_URL = "https://api-dev.lincefinance.xyz"
+  # Server-to-server over the Fly private network (both apps share the 6PN): no Cloudflare
+  # hop, and immune to the Access lock going onto api-dev.lincefinance.xyz — Access would 403
+  # the BFF's public-hostname calls. The public hostname stays for webhooks + external tooling.
+  LINCE_API_URL = "http://lince-api-dev.internal:3000"
 
 [http_service]
   internal_port = 3000
