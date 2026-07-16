@@ -6,21 +6,48 @@ import { CambioWidget } from "@/components/app/cambio-widget";
 import { BalanceChart } from "@/components/app/balance-chart";
 import { TransactionsView } from "@/components/app/transactions-view";
 import { SafeguardingPanel } from "@/components/app/safeguarding-panel";
-import { getBalances, getRates, listTransactions } from "@/lib/lince-api";
+import { getBalances, getBalanceHistory, getRates, listTransactions } from "@/lib/lince-api";
+
+// Stablecoin minor units are 6dp (USDT/USDC); BRLA is centavos. Consolidation values USD
+// stablecoins at the CURRENT mid rate — a display convention (the chart footnote says so),
+// not a historical FX series.
+function usdUnits(b: Record<string, number>): number {
+  return (b.USDT ?? 0) / 1e6 + (b.USDC ?? 0) / 1e6;
+}
+function consolidatedBrl(b: Record<string, number>, mid: number | null): number | null {
+  const brla = (b.BRLA ?? 0) / 100;
+  const usd = usdUnits(b);
+  if (usd > 0 && !mid) return null; // can't value the stablecoin leg
+  return brla + usd * (mid ?? 0);
+}
 
 // HomeView — live. Balances + recent transactions are REAL (ledger); Câmbio is the bare Avenia
 // stablecoin rate checked against mid-market. Approvals section removed (pre-go-live).
 export default async function AppHome() {
-  const [balancesRes, rates, txRes] = await Promise.all([getBalances(), getRates(), listTransactions()]);
+  const [balancesRes, rates, history, txRes] = await Promise.all([
+    getBalances(), getRates(), getBalanceHistory(), listTransactions(),
+  ]);
   const balances = balancesRes.ok ? balancesRes.data.balances : {};
-  const brlaMinor = balancesRes.ok ? (balances.BRLA ?? 0) : null;
+  const mid = rates?.brlUsd.mid ?? null;
   const recent = txRes.ok ? txRes.data.slice(0, 6) : [];
+
+  // Hero total = BRLA + stablecoins at mid. If the rate is down while stablecoins are held,
+  // fall back to the BRL wallet alone and say so, never silently under-report.
+  const totalBrl = balancesRes.ok ? consolidatedBrl(balances, mid) : null;
+  const stablecoinExcluded = balancesRes.ok && totalBrl === null;
+  const heroBrl = stablecoinExcluded ? (balances.BRLA ?? 0) / 100 : totalBrl;
+
+  const hasStablecoin = history.some((d) => usdUnits(d.balances) > 0);
+  const chartPoints = history.map((d) => ({
+    date: d.date,
+    value: consolidatedBrl(d.balances, mid) ?? (d.balances.BRLA ?? 0) / 100,
+  }));
 
   return (
     <div className="space-y-6">
       {/* Real balance + toggle + primary actions */}
       <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
-        <SaldoDisponivel brlaMinor={brlaMinor} brlPerUsd={rates?.brlUsd.mid ?? null} />
+        <SaldoDisponivel brl={heroBrl} brlPerUsd={mid} stablecoinExcluded={stablecoinExcluded} />
         <div className="flex gap-2.5">
           <Link
             href="/app/payouts"
@@ -44,7 +71,7 @@ export default async function AppHome() {
       {/* Chart + recent transactions (left) · Câmbio (right) */}
       <div className="grid gap-4 lg:grid-cols-[1.7fr_1fr] lg:items-start">
         <div className="flex flex-col gap-4">
-          <BalanceChart />
+          <BalanceChart points={chartPoints} convertedNote={hasStablecoin && mid !== null} />
           <div>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="font-display text-base font-bold">Transações recentes</h2>

@@ -92,6 +92,40 @@ export async function getBalances(): Promise<Result<{ balances: Record<string, n
   return toResult<{ balances: Record<string, number> }>(await authedFetch("/app/balances"));
 }
 
+/** Daily settled-balance history: one row per SP day since the first posting, cumulative
+ *  minor units per currency, quiet days carried forward. Empty array = no history yet. */
+export interface BalanceHistoryDay {
+  date: string; // YYYY-MM-DD
+  balances: Record<string, number>;
+}
+
+export async function getBalanceHistory(): Promise<BalanceHistoryDay[]> {
+  const res = await authedFetch("/app/balance-history");
+  if (!res.ok) return [];
+  const body = (await res.json().catch(() => ({}))) as { history?: BalanceHistoryDay[] };
+  return body.history ?? [];
+}
+
+// PIX payout (PRD-11): money-out of the held BRLA balance to a saved PIX payee. amount is a
+// decimal string in BRL; idemKey binds the request (same key + payload replays, never double-pays).
+export interface PayoutReceipt {
+  id: string;
+  state: string;
+  beneficiaryId: string | null;
+  sourceCurrency: string;
+  sourceAmount: number; // centavos BRLA debited
+  destAmount: number | null; // centavos BRL actually sent (fee deducted), from ticket actuals
+  fees: Array<{ label: string; amount: number; currency: string; rebatable: boolean }>;
+}
+
+export async function createPixPayout(
+  input: { beneficiaryId: string; amount: string; idemKey: string },
+): Promise<Result<PayoutReceipt>> {
+  return toResult<PayoutReceipt>(
+    await authedFetch("/app/payouts", { method: "POST", body: JSON.stringify(input) }),
+  );
+}
+
 // --- Câmbio (display FX). Bare Avenia stablecoin rate (BRLA<>USDT / BRLA>EUR) checked against
 //     mid-market; any leg can be null (unavailable/suspect). BRL per 1 unit of USD/EUR. ---
 export interface Rates {

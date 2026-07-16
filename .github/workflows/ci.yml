@@ -1,0 +1,42 @@
+# Customer app CI/CD. Every push/PR typechecks and builds with placeholder Clerk keys (the
+# publishable key below is the documented dummy — base64 of "example.clerk.accounts.dev$" — so
+# the build never needs a real secret). A push to dev that passes deploys to Fly lince-customer
+# (fly.toml carries the real publishable key as a build arg; server secrets live in Fly secrets).
+#
+# Required repo secret for the deploy job: FLY_API_TOKEN (fly tokens create deploy -a lince-customer).
+name: CI
+
+on:
+  push:
+    branches: [dev, staging, main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jbGVyay5hY2NvdW50cy5kZXYk
+      CLERK_SECRET_KEY: sk_test_dummy
+      LINCE_API_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx next build
+
+  deploy-dev:
+    if: github.ref == 'refs/heads/dev' && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency: deploy-dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --remote-only
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

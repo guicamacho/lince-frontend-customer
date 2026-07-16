@@ -16,6 +16,7 @@ import {
   Gift,
   Settings,
   CreditCard,
+  QrCode,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -28,6 +29,9 @@ const NAV = [
   { href: "/app/deposit", label: "Depositar", icon: ArrowDownToLine },
   { href: "/app/convert", label: "Converter", icon: Repeat },
   { href: "/app/payouts", label: "Pagamentos", icon: Send },
+  // Receber (PRD-11 second half, Confluence 261160961): cobranças/invoices pagáveis via PIX
+  // + QR fixo de loja. Announced, not navigable, until it lands.
+  { href: "/app/receber", label: "Receber", icon: QrCode, comingSoon: true },
   { href: "/app/beneficiaries", label: "Beneficiários", icon: BookUser },
   { href: "/app/transactions", label: "Transações", icon: ReceiptText },
   { href: "/app/team", label: "Equipe", icon: Users },

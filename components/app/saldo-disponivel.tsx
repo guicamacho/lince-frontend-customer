@@ -3,11 +3,20 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-/** Saldo disponível (settled BRLA) with a BRL/USD display toggle. USD uses the mid rate (BRL per
- *  USD); the toggle is disabled when no rate is available. Display-only — no money moves. */
-export function SaldoDisponivel({ brlaMinor, brlPerUsd }: { brlaMinor: number | null; brlPerUsd: number | null }) {
+/** Saldo disponível — TOTAL across wallets (BRLA + stablecoins valued at the mid rate), with a
+ *  BRL/USD display toggle. USD uses the mid rate (BRL per USD); the toggle is disabled when no
+ *  rate is available. When the rate is down while stablecoins are held, the caller passes the
+ *  BRL wallet alone with stablecoinExcluded so we say so. Display-only — no money moves. */
+export function SaldoDisponivel({
+  brl,
+  brlPerUsd,
+  stablecoinExcluded = false,
+}: {
+  brl: number | null;
+  brlPerUsd: number | null;
+  stablecoinExcluded?: boolean;
+}) {
   const [ccy, setCcy] = useState<"BRL" | "USD">("BRL");
-  const brl = brlaMinor === null ? null : brlaMinor / 100;
   const usd = brl !== null && brlPerUsd ? brl / brlPerUsd : null;
   const showUsd = ccy === "USD" && usd !== null;
   const value = showUsd ? usd : brl;
@@ -63,7 +72,11 @@ export function SaldoDisponivel({ brlaMinor, brlPerUsd }: { brlaMinor: number | 
         )}
       </div>
       <div className="mt-2.5 text-sm text-warm-500">
-        {showUsd ? "Convertido pela taxa de mercado · " : "Em custódia · "}
+        {stablecoinExcluded
+          ? "Não inclui stablecoins (taxa indisponível) · "
+          : showUsd
+            ? "Convertido pela taxa de mercado · "
+            : "Em custódia · "}
         atualizado após cada confirmação
       </div>
     </div>
