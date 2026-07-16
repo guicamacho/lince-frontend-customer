@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { Coin } from "@/components/app/coin";
 import { cn } from "@/lib/utils";
-import type { CurrencyCode } from "@/lib/sample-home";
+
+export type CurrencyCode = "USDC" | "USDT" | "BRL" | "MXN";
 
 /** Live wallet cards from ledger balances (minor units). Stablecoin (USDT+USDC), Fiat (BRL only),
  *  Investimento (em breve). Amounts are settled money — the same ints the ledger holds. */

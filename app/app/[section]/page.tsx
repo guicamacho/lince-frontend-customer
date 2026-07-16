@@ -1,12 +1,10 @@
 import { Clock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 
+// Only sections WITHOUT a real folder route reach this placeholder (Next.js matches static
+// segments first). deposit/convert/payouts/transactions have real pages now.
 const TITLES: Record<string, string> = {
   accounts: "Contas",
-  deposit: "Depositar",
-  convert: "Converter",
-  payouts: "Pagamentos",
-  transactions: "Transações",
   rewards: "Recompensas",
 };
 

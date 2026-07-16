@@ -20,8 +20,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Início/Depositar/Transações/Beneficiários/Avisos/Configurações are real pages; the rest
-// are inert links to the /app/<section> "Em breve" placeholder until each feature lands.
+// Every entry is a real page except Carteira/Recompensas (the /app/[section] "Em breve"
+// placeholder) and the comingSoon items (inert, not navigable).
 // Order per product decision 2026-07-09: Avisos second-last, Configurações last.
 const NAV = [
   { href: "/app", label: "Início", icon: LayoutGrid, exact: true },

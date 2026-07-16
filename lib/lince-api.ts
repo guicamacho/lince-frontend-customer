@@ -49,24 +49,6 @@ export async function getDepositDetails(): Promise<Result<DepositDetails>> {
   return toResult<DepositDetails>(await authedFetch("/app/deposit-details"));
 }
 
-// Amount-specific PIX deposit: quote+ticket on the org's subaccount; returns the brCode to pay.
-// idemKey binds the request (same key + same amount replays the same ticket; different -> 409).
-export interface DepositReceipt {
-  id: string;
-  state: string;
-  brCode: string | null;
-  expiration: string | null;
-  sourceAmount: number; // centavos
-  destAmount: number | null;
-  fees: Array<{ label: string; amount: number; currency: string; rebatable: boolean }>;
-}
-
-export async function createDeposit(input: { amountBrl: string; idemKey: string }): Promise<Result<DepositReceipt>> {
-  return toResult<DepositReceipt>(
-    await authedFetch("/app/deposits", { method: "POST", body: JSON.stringify(input) }),
-  );
-}
-
 // Convert (PRD-10): standalone swap of the customer's own balance. from/to are ledger currency
 // codes (BRLA/USDT); amount is a decimal string in the source currency. idemKey binds the request.
 export interface ConvertReceipt {
@@ -106,19 +88,21 @@ export async function getBalanceHistory(): Promise<BalanceHistoryDay[]> {
   return body.history ?? [];
 }
 
-// PIX payout (PRD-11): money-out of the held BRLA balance to a saved PIX payee. amount is a
-// decimal string in BRL; idemKey binds the request (same key + payload replays, never double-pays).
+// Payouts (PRD-11): money-out of held balance to a saved payee over the payee's rail — PIX
+// (from BRLA), USD ACH/WIRE and crypto (from stablecoins). amount is a decimal string in the
+// rail's source currency; idemKey binds the request (same key + payload replays, never
+// double-pays). The backend picks the rail from the beneficiary.
 export interface PayoutReceipt {
   id: string;
   state: string;
   beneficiaryId: string | null;
   sourceCurrency: string;
-  sourceAmount: number; // centavos BRLA debited
-  destAmount: number | null; // centavos BRL actually sent (fee deducted), from ticket actuals
+  sourceAmount: number; // minor units of the source currency debited
+  destAmount: number | null; // minor units actually sent (fee deducted), from ticket actuals
   fees: Array<{ label: string; amount: number; currency: string; rebatable: boolean }>;
 }
 
-export async function createPixPayout(
+export async function createPayout(
   input: { beneficiaryId: string; amount: string; idemKey: string },
 ): Promise<Result<PayoutReceipt>> {
   return toResult<PayoutReceipt>(

@@ -2,19 +2,30 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Send, CheckCircle2, TriangleAlert, KeyRound } from "lucide-react";
+import { Send, CheckCircle2, TriangleAlert, KeyRound, Landmark, Bitcoin } from "lucide-react";
 import type { Beneficiary } from "@/lib/lince-api";
 import { payoutAction } from "@/app/app/payouts/payout-actions";
 import { cn } from "@/lib/utils";
 
-const fmtBrl = (n: number) =>
-  `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+// What each rail means for the form: which held balance funds it, how amounts render, and the
+// short "via" tag on the payee row. Rails absent here (swift, sepa) are capture-only for now.
+const RAILS: Record<string, { ledger: (b: Beneficiary) => string; symbol: string; via: (b: Beneficiary) => string; icon: typeof KeyRound }> = {
+  pix: { ledger: () => "BRLA", symbol: "R$", via: () => "PIX", icon: KeyRound },
+  ach: { ledger: () => "USDT", symbol: "US$", via: () => "ACH", icon: Landmark },
+  fedwire: { ledger: () => "USDT", symbol: "US$", via: () => "Wire", icon: Landmark },
+  crypto: { ledger: (b) => b.asset ?? "USDT", symbol: "US$", via: (b) => b.network ?? "cripto", icon: Bitcoin },
+};
+const LEDGER_DP: Record<string, number> = { BRLA: 2, USDT: 6, USDC: 6 };
+
+const fmtMoney = (n: number, symbol: string) =>
+  `${symbol} ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 function friendlyError(code: string): { message: string; action?: "mfa" } {
   switch (code) {
     case "insufficient_balance": return { message: "Saldo insuficiente para este pagamento." };
     case "mfa_required": return { message: "Ative a verificação em duas etapas (2FA) para enviar pagamentos.", action: "mfa" };
     case "invalid_amount": return { message: "Valor inválido." };
+    case "beneficiary_incomplete": return { message: "Cadastro do beneficiário incompleto para envio. Cadastre-o novamente com os dados bancários completos (banco e endereço)." };
     case "beneficiary_not_found":
     case "beneficiary_disabled":
     case "unsupported_rail": return { message: "Beneficiário indisponível para pagamento. Verifique o cadastro." };
@@ -26,11 +37,12 @@ function friendlyError(code: string): { message: string; action?: "mfa" } {
 }
 
 export function PayoutForm({ balances, payees }: { balances: Record<string, number>; payees: Beneficiary[] }) {
-  const [payeeId, setPayeeId] = useState<string | null>(payees.length === 1 ? payees[0]!.id : null);
+  const payable = useMemo(() => payees.filter((p) => p.rail && RAILS[p.rail]), [payees]);
+  const [payeeId, setPayeeId] = useState<string | null>(payable.length === 1 ? payable[0]!.id : null);
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<{ message: string; action?: "mfa" } | null>(null);
-  const [done, setDone] = useState<{ status: "ok"; sent: number; payee: string } | { status: "pending" } | null>(null);
+  const [done, setDone] = useState<{ status: "ok"; sent: number; symbol: string; payee: string } | { status: "pending" } | null>(null);
 
   // Stable idem key per intent; cleared on confirmed success, kept on an uncertain outcome.
   const idemRef = useRef<{ intent: string; key: string } | null>(null);
@@ -39,14 +51,17 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
     return idemRef.current.key;
   }
 
-  const available = (balances["BRLA"] ?? 0) / 100;
+  const payee = useMemo(() => payable.find((p) => p.id === payeeId) ?? null, [payable, payeeId]);
+  const rail = payee?.rail ? RAILS[payee.rail] : null;
+  const ledger = payee && rail ? rail.ledger(payee) : "BRLA";
+  const symbol = rail?.symbol ?? "R$";
+  const available = (balances[ledger] ?? 0) / 10 ** (LEDGER_DP[ledger] ?? 2);
   const amountNum = Number(amount.replace(",", "."));
   const validAmount = Number.isFinite(amountNum) && amountNum > 0;
   const overBalance = validAmount && amountNum > available + 1e-9;
-  const payee = useMemo(() => payees.find((p) => p.id === payeeId) ?? null, [payees, payeeId]);
 
   async function submit() {
-    if (!payee || !validAmount || overBalance || submitting) return;
+    if (!payee || !rail || !validAmount || overBalance || submitting) return;
     setSubmitting(true);
     setError(null);
     const res = await payoutAction({
@@ -57,7 +72,8 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
     setSubmitting(false);
     if (res.ok && res.data.state !== "created" && res.data.destAmount != null) {
       idemRef.current = null; // confirmed — next payout mints a fresh key
-      setDone({ status: "ok", sent: res.data.destAmount / 100, payee: payee.label });
+      const destDp = payee.rail === "pix" ? 2 : LEDGER_DP[res.data.sourceCurrency] === 6 && payee.rail === "crypto" ? 6 : 2;
+      setDone({ status: "ok", sent: res.data.destAmount / 10 ** destDp, symbol, payee: payee.label });
     } else if (res.ok || res.error === "payout_pending_reconcile") {
       setDone({ status: "pending" }); // keep the idem key: a retry replays, never double-pays
     } else {
@@ -75,7 +91,7 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
         <p className="mt-3 text-sm leading-relaxed text-warm-300">
           {done.status === "ok" ? (
             <><strong className="text-warm-100">{done.payee}</strong> receberá{" "}
-              <strong className="text-warm-100">{fmtBrl(done.sent)}</strong> via PIX (tarifa já deduzida). O
+              <strong className="text-warm-100">{fmtMoney(done.sent, done.symbol)}</strong> (tarifa já deduzida). O
               saldo é atualizado assim que a operação é confirmada.</>
           ) : (
             <>Estamos confirmando seu pagamento. Acompanhe o resultado em Transações; o saldo é atualizado ao confirmar.</>
@@ -96,19 +112,39 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
 
   return (
     <div className="rounded-[22px] bg-ink-800 p-5 ring-1 ring-foreground/10 sm:p-6">
-      {/* Payee picker */}
+      {/* Payee picker — every active payee is listed; capture-only rails are visible but inert
+          so the address book and the payout surface never look out of sync. */}
       <fieldset>
         <legend className="text-xs text-warm-400">Beneficiário</legend>
         <div className="mt-2 space-y-2" role="radiogroup" aria-label="Escolha o beneficiário">
           {payees.map((p) => {
+            const info = p.rail ? RAILS[p.rail] : undefined;
+            if (!info) {
+              return (
+                <div key={p.id} aria-disabled="true"
+                  className="flex min-h-14 w-full cursor-default items-center gap-3 rounded-2xl bg-ink-900/50 p-3.5 opacity-60 ring-1 ring-foreground/10 select-none">
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink-700 text-warm-500">
+                    <Landmark className="size-4" aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-warm-300">{p.label}</span>
+                    <span className="block truncate text-xs text-warm-500">{p.payee_legal_name}</span>
+                  </span>
+                  <span className="ml-auto shrink-0 rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-warm-500 uppercase">
+                    Não disponível para envio
+                  </span>
+                </div>
+              );
+            }
             const selected = p.id === payeeId;
+            const Icon = info.icon;
             return (
               <button
                 key={p.id}
                 type="button"
                 role="radio"
                 aria-checked={selected}
-                onClick={() => { setPayeeId(p.id); setError(null); }}
+                onClick={() => { setPayeeId(p.id); setAmount(""); setError(null); }}
                 className={cn(
                   "flex min-h-14 w-full cursor-pointer items-center gap-3 rounded-2xl bg-ink-900 p-3.5 text-left ring-1 transition-colors",
                   selected ? "ring-gold-500/60" : "ring-foreground/10 hover:ring-foreground/25",
@@ -118,13 +154,16 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
                   "flex size-9 shrink-0 items-center justify-center rounded-full",
                   selected ? "bg-gold-500 text-ink-900" : "bg-ink-700 text-warm-300",
                 )}>
-                  <KeyRound className="size-4" aria-hidden />
+                  <Icon className="size-4" aria-hidden />
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold text-warm-100">{p.label}</span>
                   <span className="block truncate text-xs text-warm-400">
-                    {p.payee_legal_name}{p.dest_hint ? ` · chave PIX …${p.dest_hint}` : ""}
+                    {p.payee_legal_name}{p.dest_hint ? ` · …${p.dest_hint}` : ""}
                   </span>
+                </span>
+                <span className="ml-auto shrink-0 rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-warm-400 uppercase">
+                  {info.via(p)}
                 </span>
               </button>
             );
@@ -132,13 +171,14 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
         </div>
       </fieldset>
 
-      {/* Amount */}
+      {/* Amount — in the selected payee's asset, checked against that asset's held balance */}
       <div className="mt-4 rounded-2xl bg-ink-900 p-4 ring-1 ring-foreground/10 focus-within:ring-gold-500/40">
         <div className="flex items-center justify-between text-xs">
           <label htmlFor="payout-amount" className="text-warm-400">Você envia</label>
-          <button type="button" onClick={() => { setAmount(available.toFixed(2)); setError(null); }}
-            className="cursor-pointer font-semibold text-gold-500 transition-colors hover:text-gold-400">
-            Máx · {fmtBrl(available)}
+          <button type="button" disabled={!payee}
+            onClick={() => { setAmount(available.toFixed(2)); setError(null); }}
+            className="cursor-pointer font-semibold text-gold-500 transition-colors hover:text-gold-400 disabled:cursor-not-allowed disabled:opacity-40">
+            Máx · {fmtMoney(available, symbol)}
           </button>
         </div>
         <div className="mt-2 flex items-center gap-3">
@@ -150,12 +190,16 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
             onChange={(e) => { setAmount(e.target.value.replace(/[^\d.,]/g, "")); setError(null); }}
             className="min-w-0 flex-1 bg-transparent font-display text-[28px] tabular-nums text-warm-100 outline-none placeholder:text-warm-600"
           />
-          <span className="shrink-0 rounded-full bg-ink-700 px-3.5 py-1.5 text-sm font-bold text-warm-100 ring-1 ring-foreground/10">BRL</span>
+          <span className="shrink-0 rounded-full bg-ink-700 px-3.5 py-1.5 text-sm font-bold text-warm-100 ring-1 ring-foreground/10">
+            {payee?.rail === "crypto" ? ledger : symbol === "R$" ? "BRL" : "USD"}
+          </span>
         </div>
       </div>
 
       <p className="mt-3 text-xs text-warm-500">
-        Transferência via PIX. A tarifa é deduzida do valor enviado e aparece no comprovante.
+        {payee?.rail === "crypto"
+          ? "Envio on-chain. A tarifa de rede é deduzida do valor enviado e aparece no comprovante."
+          : "A tarifa é deduzida do valor enviado e aparece no comprovante."}
       </p>
 
       {overBalance && <p className="mt-2 text-xs text-clay-400">Valor acima do saldo disponível.</p>}

@@ -35,6 +35,17 @@ export interface RailMeta {
   fields: RailField[]; // rail-specific destination fields
 }
 
+// Avenia's USD beneficiary registration needs the bank's name and the beneficiary's US address
+// (backend rails.ts requires them since 2026-07-15) — without them the payee can't be paid.
+const USD_BANK_FIELDS: RailField[] = [
+  { name: "bankName", label: "Banco", kind: "text", placeholder: "Ex.: Chase" },
+  { name: "streetLine1", label: "Endereço (linha 1)", kind: "text" },
+  { name: "streetLine2", label: "Endereço (linha 2)", kind: "text", optional: true },
+  { name: "city", label: "Cidade", kind: "text" },
+  { name: "state", label: "Estado", kind: "text", placeholder: "Ex.: NY" },
+  { name: "postalCode", label: "CEP (ZIP)", kind: "text" },
+];
+
 export const RAILS: RailMeta[] = [
   {
     rail: "pix",
@@ -69,6 +80,7 @@ export const RAILS: RailMeta[] = [
     fields: [
       { name: "routingNumber", label: "Routing number (ABA)", kind: "text", placeholder: "9 dígitos" },
       { name: "accountNumber", label: "Número da conta", kind: "text" },
+      ...USD_BANK_FIELDS,
     ],
   },
   {
@@ -81,6 +93,7 @@ export const RAILS: RailMeta[] = [
     fields: [
       { name: "routingNumber", label: "Routing number (ABA)", kind: "text", placeholder: "9 dígitos" },
       { name: "accountNumber", label: "Número da conta", kind: "text" },
+      ...USD_BANK_FIELDS,
     ],
   },
   {

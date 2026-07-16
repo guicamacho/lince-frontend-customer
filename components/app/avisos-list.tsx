@@ -5,7 +5,7 @@ import { caseTypeLabel, caseStatusLabel, formatDay } from "@/lib/case-labels";
 import { cn } from "@/lib/utils";
 
 /**
- * Customer "Avisos" list — clones the AttentionRail panel idiom (rounded ring-1 panel, divided
+ * Customer "Avisos" list — the house panel idiom (rounded ring-1 panel, divided
  * rows, count pill). Rows are the customer's cases; each links to its thread. The unread dot is
  * derived from unread notifications (org-level read state, D4). Neutral pt-BR throughout.
  */
