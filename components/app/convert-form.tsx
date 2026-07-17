@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useReverification } from "@clerk/nextjs";
+import { isReverificationCancelledError } from "@clerk/nextjs/errors";
 import { ArrowUpDown, Repeat, CheckCircle2, TriangleAlert } from "lucide-react";
 import type { Rates } from "@/lib/lince-api";
 import { fetchRatesAction } from "@/app/app/rates-actions";
@@ -84,13 +86,27 @@ export function ConvertForm({ balances, rates: initialRates }: { balances: Recor
     setError(null);
   }
 
+  // Step-up recovery (F8): re-auth modal + retry with the SAME idemKey (replay-safe).
+  const convertWithStepUp = useReverification(convertAction);
+
   async function submit() {
     if (!validAmount || overBalance || submitting) return;
     setSubmitting(true);
     setError(null);
-    const res = await convertAction({
-      from: leg.fromCode, to: leg.toCode, amount: amount.replace(",", "."), idemKey: idemFor(`${dir}:${amount}`),
-    });
+    let res;
+    try {
+      res = await convertWithStepUp({
+        from: leg.fromCode, to: leg.toCode, amount: amount.replace(",", "."), idemKey: idemFor(`${dir}:${amount}`),
+      });
+    } catch (e) {
+      setSubmitting(false);
+      setError(
+        isReverificationCancelledError(e)
+          ? { message: "Confirmação de identidade cancelada. A conversão não foi executada." }
+          : friendlyError(""),
+      );
+      return;
+    }
     setSubmitting(false);
     if (res.ok && res.data.state !== "created" && res.data.destAmount != null) {
       idemRef.current = null; // confirmed — next convert mints a fresh key

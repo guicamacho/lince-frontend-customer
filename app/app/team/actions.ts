@@ -1,5 +1,6 @@
 "use server";
 
+import { reverificationError } from "@clerk/nextjs/server";
 import {
   inviteTeamMember,
   resendTeamInvitation,
@@ -53,7 +54,12 @@ export async function removeMemberAction(personId: string): Promise<ActionResult
   return res.ok ? { ok: true } : { error: msg(res.error) };
 }
 
-export async function transferOwnershipAction(toPersonId: string): Promise<ActionResult> {
+/** step_up_required -> Clerk reverification hint (see payout-actions): the manager's
+ *  useReverification wrapper re-auths and retries instead of dead-ending on the copy above. */
+export async function transferOwnershipAction(
+  toPersonId: string,
+): Promise<ActionResult | ReturnType<typeof reverificationError>> {
   const res = await transferTeamOwnership(toPersonId);
+  if (!res.ok && res.error === "step_up_required") return reverificationError("strict");
   return res.ok ? { ok: true } : { error: msg(res.error) };
 }

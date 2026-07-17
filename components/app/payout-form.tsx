@@ -2,6 +2,8 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useReverification } from "@clerk/nextjs";
+import { isReverificationCancelledError } from "@clerk/nextjs/errors";
 import { Send, CheckCircle2, TriangleAlert, KeyRound, Landmark, Bitcoin } from "lucide-react";
 import type { Beneficiary } from "@/lib/lince-api";
 import { payoutAction } from "@/app/app/payouts/payout-actions";
@@ -60,15 +62,31 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
   const validAmount = Number.isFinite(amountNum) && amountNum > 0;
   const overBalance = validAmount && amountNum > available + 1e-9;
 
+  // Step-up recovery (F8): when STEP_UP_ENFORCED is on, the backend 403s stale sessions; the
+  // server action converts that into Clerk's reverification hint, this wrapper opens the
+  // re-auth modal and retries the SAME call (same idemKey — replay-safe, never double-pays).
+  const payoutWithStepUp = useReverification(payoutAction);
+
   async function submit() {
     if (!payee || !rail || !validAmount || overBalance || submitting) return;
     setSubmitting(true);
     setError(null);
-    const res = await payoutAction({
-      beneficiaryId: payee.id,
-      amount: amount.replace(",", "."),
-      idemKey: idemFor(`${payee.id}:${amount}`),
-    });
+    let res;
+    try {
+      res = await payoutWithStepUp({
+        beneficiaryId: payee.id,
+        amount: amount.replace(",", "."),
+        idemKey: idemFor(`${payee.id}:${amount}`),
+      });
+    } catch (e) {
+      setSubmitting(false);
+      setError(
+        isReverificationCancelledError(e)
+          ? { message: "Confirmação de identidade cancelada. O pagamento não foi enviado." }
+          : friendlyError(""),
+      );
+      return;
+    }
     setSubmitting(false);
     if (res.ok && res.data.state !== "created" && res.data.destAmount != null) {
       idemRef.current = null; // confirmed — next payout mints a fresh key

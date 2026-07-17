@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useReverification } from "@clerk/nextjs";
+import { isReverificationCancelledError } from "@clerk/nextjs/errors";
 import { UserPlus, Crown, Loader2, Send } from "lucide-react";
 import type { AccessRole, TeamMember } from "@/lib/lince-api";
 import { Card } from "@/components/ui/card";
@@ -247,11 +249,25 @@ function MemberRow({
     setCooldownUntil(until);
   }, [member.cooldownRemaining]);
 
+  // Step-up recovery (F8): transfer-ownership is step-up-gated on the backend; the wrapper
+  // opens Clerk's re-auth modal and retries instead of dead-ending on the 403 copy.
+  const transferWithStepUp = useReverification(transferOwnershipAction);
+
   function run(fn: () => Promise<{ ok: true } | { error: string }>) {
     setError(null);
     setInfo(null);
     startTransition(async () => {
-      const res = await fn();
+      let res;
+      try {
+        res = await fn();
+      } catch (e) {
+        setError(
+          isReverificationCancelledError(e)
+            ? "Confirmação de identidade cancelada. Nada foi alterado."
+            : "Não foi possível concluir. Tente novamente.",
+        );
+        return;
+      }
       if ("error" in res) {
         setError(res.error);
         return;
@@ -314,7 +330,7 @@ function MemberRow({
             <ConfirmInline
               label="Transferir propriedade?"
               pending={pending}
-              onConfirm={() => run(() => transferOwnershipAction(member.personId))}
+              onConfirm={() => run(() => transferWithStepUp(member.personId))}
               onCancel={() => setConfirm(null)}
             />
           ) : (

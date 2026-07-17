@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useReverification } from "@clerk/nextjs";
+import { isReverificationCancelledError } from "@clerk/nextjs/errors";
 import { Loader2 } from "lucide-react";
 import { RAILS, CRYPTO_NETWORKS, railByKey, type Rail, type RailGroup } from "@/lib/rails";
 import { assetMark } from "@/components/app/currency-marks";
@@ -59,6 +61,9 @@ export function BeneficiaryForm() {
 
   const networks = useMemo(() => (meta?.needsNetwork ? (CRYPTO_NETWORKS[asset] ?? []) : []), [meta, asset]);
 
+  // Step-up recovery (F8): stale-session 403s become Clerk's re-auth modal + retry.
+  const createWithStepUp = useReverification(createBeneficiaryAction);
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!meta) return;
@@ -75,19 +80,30 @@ export function BeneficiaryForm() {
       return;
     }
     setPending(true);
-    const res = await createBeneficiaryAction({
-      label: label.trim(),
-      rail: meta.rail,
-      asset: meta.asset ?? asset,
-      network: meta.needsNetwork ? network : undefined,
-      payeeLegalName: payeeLegalName.trim(),
-      payeeCountry: meta.asksPayeeCountry ? payeeCountry.trim().toUpperCase() : undefined,
-      purposeOfPayment: purposeOfPayment.trim(),
-      sourceOfFunds: sourceOfFunds.trim() || undefined,
-      destination: Object.fromEntries(
-        meta.fields.map((f) => [f.name, String(dest[f.name] ?? "").trim()]).filter(([, v]) => v),
-      ),
-    });
+    let res;
+    try {
+      res = await createWithStepUp({
+        label: label.trim(),
+        rail: meta.rail,
+        asset: meta.asset ?? asset,
+        network: meta.needsNetwork ? network : undefined,
+        payeeLegalName: payeeLegalName.trim(),
+        payeeCountry: meta.asksPayeeCountry ? payeeCountry.trim().toUpperCase() : undefined,
+        purposeOfPayment: purposeOfPayment.trim(),
+        sourceOfFunds: sourceOfFunds.trim() || undefined,
+        destination: Object.fromEntries(
+          meta.fields.map((f) => [f.name, String(dest[f.name] ?? "").trim()]).filter(([, v]) => v),
+        ),
+      });
+    } catch (e2) {
+      setPending(false);
+      setError(
+        isReverificationCancelledError(e2)
+          ? "Confirmação de identidade cancelada. O beneficiário não foi salvo."
+          : "Não foi possível salvar o beneficiário. Tente novamente.",
+      );
+      return;
+    }
     setPending(false);
     if ("error" in res) {
       setError(res.error);

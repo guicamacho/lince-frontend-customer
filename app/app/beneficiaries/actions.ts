@@ -1,5 +1,6 @@
 "use server";
 
+import { reverificationError } from "@clerk/nextjs/server";
 import { createBeneficiary, type CreateBeneficiaryInput } from "@/lib/lince-api";
 
 // Backend rail-validation codes -> pt-BR. The backend (rails.validateBeneficiary) is the wall;
@@ -23,9 +24,12 @@ const RAIL_ERROR_PT: Record<string, string> = {
 
 export async function createBeneficiaryAction(
   input: CreateBeneficiaryInput,
-): Promise<{ ok: true } | { error: string }> {
+): Promise<{ ok: true } | { error: string } | ReturnType<typeof reverificationError>> {
   const res = await createBeneficiary(input);
   if (!res.ok) {
+    // step_up_required -> Clerk reverification hint; the form's useReverification wrapper
+    // re-auths and retries (payee create is idempotent-safe to resubmit from the same form).
+    if (res.error === "step_up_required") return reverificationError("strict");
     if (RAIL_ERROR_PT[res.error]) return { error: RAIL_ERROR_PT[res.error] };
     if (res.error.startsWith("missing_")) return { error: "Preencha todos os campos obrigatórios." };
     if (res.error.startsWith("invalid_") || res.error.startsWith("too_long_")) return { error: "Verifique os dados informados." };
