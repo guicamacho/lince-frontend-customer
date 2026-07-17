@@ -8,20 +8,25 @@ import { ArrowUpDown, Repeat, CheckCircle2, TriangleAlert } from "lucide-react";
 import type { Rates } from "@/lib/lince-api";
 import { fetchRatesAction } from "@/app/app/rates-actions";
 import { convertAction } from "@/app/app/convert/convert-actions";
-import { BrlFlag, UsdFlag } from "@/components/app/currency-marks";
+import { BrlFlag, UsdFlag, EurFlag } from "@/components/app/currency-marks";
 import { cn } from "@/lib/utils";
 
-// UI currency <-> ledger currency. USD both ways (BRLA<->USDT); EUR is a follow-up.
-type Dir = "brl2usd" | "usd2brl";
-const LEG: Record<Dir, { fromCode: string; toCode: string; fromCcy: "BRL" | "USD"; toCcy: "BRL" | "USD" }> = {
+// UI currency <-> ledger currency. USD via USDT both ways; EUR via EURC both ways
+// (round trip verified live 2026-07-18).
+type Ccy = "BRL" | "USD" | "EUR";
+type Foreign = "USD" | "EUR";
+type Dir = "brl2usd" | "usd2brl" | "brl2eur" | "eur2brl";
+const LEG: Record<Dir, { fromCode: string; toCode: string; fromCcy: Ccy; toCcy: Ccy }> = {
   brl2usd: { fromCode: "BRLA", toCode: "USDT", fromCcy: "BRL", toCcy: "USD" },
   usd2brl: { fromCode: "USDT", toCode: "BRLA", fromCcy: "USD", toCcy: "BRL" },
+  brl2eur: { fromCode: "BRLA", toCode: "EURC", fromCcy: "BRL", toCcy: "EUR" },
+  eur2brl: { fromCode: "EURC", toCode: "BRLA", fromCcy: "EUR", toCcy: "BRL" },
 };
-const SYMBOL: Record<"BRL" | "USD", string> = { BRL: "R$", USD: "US$" };
-const LEDGER_DP: Record<string, number> = { BRLA: 2, USDT: 6 };
+const SYMBOL: Record<Ccy, string> = { BRL: "R$", USD: "US$", EUR: "€" };
+const LEDGER_DP: Record<string, number> = { BRLA: 2, USDT: 6, EURC: 6 };
 const REFRESH_MS = 15_000;
 
-const fmtMoney = (n: number, ccy: "BRL" | "USD") =>
+const fmtMoney = (n: number, ccy: Ccy) =>
   `${SYMBOL[ccy]} ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtRate = (n: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
 
@@ -37,10 +42,10 @@ function friendlyError(code: string): { message: string; action?: "mfa" } {
   }
 }
 
-function CurrencyChip({ ccy }: { ccy: "BRL" | "USD" }) {
+function CurrencyChip({ ccy }: { ccy: Ccy }) {
   return (
     <div className="flex shrink-0 items-center gap-2 rounded-full bg-ink-700 py-1.5 pr-3.5 pl-1.5 ring-1 ring-foreground/10">
-      {ccy === "BRL" ? <BrlFlag /> : <UsdFlag />}
+      {ccy === "BRL" ? <BrlFlag /> : ccy === "USD" ? <UsdFlag /> : <EurFlag />}
       <span className="text-sm font-bold text-warm-100">{ccy}</span>
     </div>
   );
@@ -52,7 +57,7 @@ export function ConvertForm({ balances, rates: initialRates }: { balances: Recor
   const [rates, setRates] = useState<Rates | null>(initialRates);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<{ message: string; action?: "mfa" } | null>(null);
-  const [done, setDone] = useState<{ status: "ok"; out: number; toCcy: "BRL" | "USD" } | { status: "pending" } | null>(null);
+  const [done, setDone] = useState<{ status: "ok"; out: number; toCcy: Ccy } | { status: "pending" } | null>(null);
 
   // Live rates: keep the estimate accurate while the form is open (task: refresh every X seconds).
   useEffect(() => {
@@ -68,20 +73,34 @@ export function ConvertForm({ balances, rates: initialRates }: { balances: Recor
   }
 
   const leg = LEG[dir];
+  const foreign: Foreign = dir.includes("eur") ? "EUR" : "USD";
   const available = (balances[leg.fromCode] ?? 0) / 10 ** (LEDGER_DP[leg.fromCode] ?? 2);
   const amountNum = Number(amount.replace(",", "."));
   const validAmount = Number.isFinite(amountNum) && amountNum > 0;
   const overBalance = validAmount && amountNum > available + 1e-9;
 
-  // The rate used for this direction: buy when spending BRL for USD, sell when spending USD for BRL.
-  const rate = dir === "brl2usd" ? (rates?.brlUsd.buy ?? rates?.brlUsd.mid ?? null) : (rates?.brlUsd.sell ?? rates?.brlUsd.mid ?? null);
+  // The rate for the direction: buy when spending BRL for the foreign leg, sell coming back.
+  // EUR publishes buy + mid only (one-way board) — mid backs the return estimate.
+  const rate =
+    dir === "brl2usd" ? (rates?.brlUsd.buy ?? rates?.brlUsd.mid ?? null)
+    : dir === "usd2brl" ? (rates?.brlUsd.sell ?? rates?.brlUsd.mid ?? null)
+    : dir === "brl2eur" ? (rates?.brlEur.buy ?? rates?.brlEur.mid ?? null)
+    : (rates?.brlEur.mid ?? rates?.brlEur.buy ?? null);
   const estimate = useMemo(() => {
     if (!validAmount || !rate) return null;
-    return dir === "brl2usd" ? amountNum / rate : amountNum * rate;
+    return dir.startsWith("brl2") ? amountNum / rate : amountNum * rate;
   }, [validAmount, rate, dir, amountNum]);
 
   function swap() {
-    setDir((d) => (d === "brl2usd" ? "usd2brl" : "brl2usd"));
+    setDir((d) => (LEG[d].fromCcy === "BRL" ? (`${foreign.toLowerCase()}2brl` as Dir) : (`brl2${foreign.toLowerCase()}` as Dir)));
+    setAmount("");
+    setError(null);
+  }
+
+  function pickForeign(f: Foreign) {
+    if (f === foreign) return;
+    // Keep the direction side (spending BRL stays spending BRL) while switching the pair.
+    setDir(leg.fromCcy === "BRL" ? (`brl2${f.toLowerCase()}` as Dir) : (`${f.toLowerCase()}2brl` as Dir));
     setAmount("");
     setError(null);
   }
@@ -148,6 +167,24 @@ export function ConvertForm({ balances, rates: initialRates }: { balances: Recor
 
   return (
     <div className="rounded-[22px] bg-ink-800 p-5 ring-1 ring-foreground/10 sm:p-6">
+      {/* Foreign-leg picker: which pair the swap works (USD via USDT, EUR via EURC) */}
+      <div className="mb-4 inline-flex gap-0.5 rounded-full bg-ink-700 p-1" role="group" aria-label="Moeda estrangeira">
+        {(["USD", "EUR"] as const).map((f) => (
+          <button
+            key={f}
+            type="button"
+            aria-pressed={foreign === f}
+            onClick={() => pickForeign(f)}
+            className={cn(
+              "cursor-pointer rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+              foreign === f ? "bg-ink-900 text-bone-100" : "text-warm-400 hover:text-warm-100",
+            )}
+          >
+            {f}
+          </button>
+        ))}
+      </div>
+
       {/* Paired panels with a center swap control */}
       <div className="relative">
         {/* From */}
@@ -200,7 +237,7 @@ export function ConvertForm({ balances, rates: initialRates }: { balances: Recor
       <div className="mt-4 flex items-center justify-between rounded-xl bg-ink-900/50 px-3.5 py-2.5 text-xs">
         <span className="flex items-center gap-1.5 text-warm-300">
           <span className="size-1.5 animate-pulse rounded-full bg-emerald-400" aria-hidden />
-          {rate ? <>1 USD = <span className="font-mono tabular-nums text-warm-100">R$ {fmtRate(rate)}</span></> : "Taxa indisponível"}
+          {rate ? <>1 {foreign} = <span className="font-mono tabular-nums text-warm-100">R$ {fmtRate(rate)}</span></> : "Taxa indisponível"}
         </span>
         <span className="text-warm-500">Atualiza a cada 15s · sem tarifas</span>
       </div>

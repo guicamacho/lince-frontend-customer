@@ -10,14 +10,15 @@ import { payoutAction } from "@/app/app/payouts/payout-actions";
 import { cn } from "@/lib/utils";
 
 // What each rail means for the form: which held balance funds it, how amounts render, and the
-// short "via" tag on the payee row. Rails absent here (swift, sepa) are capture-only for now.
-const RAILS: Record<string, { ledger: (b: Beneficiary) => string; symbol: string; via: (b: Beneficiary) => string; icon: typeof KeyRound }> = {
-  pix: { ledger: () => "BRLA", symbol: "R$", via: () => "PIX", icon: KeyRound },
-  ach: { ledger: () => "USDT", symbol: "US$", via: () => "ACH", icon: Landmark },
-  fedwire: { ledger: () => "USDT", symbol: "US$", via: () => "Wire", icon: Landmark },
-  crypto: { ledger: (b) => b.asset ?? "USDT", symbol: "US$", via: (b) => b.network ?? "cripto", icon: Bitcoin },
+// short "via" tag on the payee row. Rails absent here (swift) are capture-only for now.
+const RAILS: Record<string, { ledger: (b: Beneficiary) => string; symbol: string; unit: string; via: (b: Beneficiary) => string; icon: typeof KeyRound }> = {
+  pix: { ledger: () => "BRLA", symbol: "R$", unit: "BRL", via: () => "PIX", icon: KeyRound },
+  ach: { ledger: () => "USDT", symbol: "US$", unit: "USD", via: () => "ACH", icon: Landmark },
+  fedwire: { ledger: () => "USDT", symbol: "US$", unit: "USD", via: () => "Wire", icon: Landmark },
+  sepa: { ledger: () => "EURC", symbol: "€", unit: "EUR", via: () => "SEPA", icon: Landmark },
+  crypto: { ledger: (b) => b.asset ?? "USDT", symbol: "US$", unit: "", via: (b) => b.network ?? "cripto", icon: Bitcoin },
 };
-const LEDGER_DP: Record<string, number> = { BRLA: 2, USDT: 6, USDC: 6 };
+const LEDGER_DP: Record<string, number> = { BRLA: 2, USDT: 6, USDC: 6, EURC: 6 };
 
 const fmtMoney = (n: number, symbol: string) =>
   `${symbol} ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -209,7 +210,7 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
             className="min-w-0 flex-1 bg-transparent font-display text-[28px] tabular-nums text-warm-100 outline-none placeholder:text-warm-600"
           />
           <span className="shrink-0 rounded-full bg-ink-700 px-3.5 py-1.5 text-sm font-bold text-warm-100 ring-1 ring-foreground/10">
-            {payee?.rail === "crypto" ? ledger : symbol === "R$" ? "BRL" : "USD"}
+            {payee?.rail === "crypto" ? ledger : (rail?.unit ?? "BRL")}
           </span>
         </div>
       </div>

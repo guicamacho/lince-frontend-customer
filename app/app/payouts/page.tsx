@@ -16,7 +16,7 @@ export default async function PayoutsPage() {
       <div>
         <h1 className="font-display text-2xl">Pagamentos</h1>
         <p className="mt-1 text-sm text-warm-400">
-          Envie seu saldo para um beneficiário salvo — PIX, transferência em dólar ou cripto.
+          Envie seu saldo para um beneficiário salvo — PIX, dólar (ACH/Wire), euro (SEPA) ou cripto.
         </p>
       </div>
       {payees.length === 0 ? (

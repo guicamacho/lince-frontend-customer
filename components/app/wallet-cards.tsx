@@ -2,15 +2,19 @@ import type { ReactNode } from "react";
 import { Coin } from "@/components/app/coin";
 import { cn } from "@/lib/utils";
 
-export type CurrencyCode = "USDC" | "USDT" | "BRL" | "MXN";
+export type CurrencyCode = "USDC" | "USDT" | "EURC" | "BRL" | "MXN";
 
-/** Live wallet cards from ledger balances (minor units). Stablecoin (USDT+USDC), Fiat (BRL only),
- *  Investimento (em breve). Amounts are settled money — the same ints the ledger holds. */
+/** Live wallet cards from ledger balances (minor units). Stablecoin (USDT+USDC in US$, plus an
+ *  EURC € line when held), Fiat (BRL only), Investimento (em breve). Amounts are settled money —
+ *  the same ints the ledger holds. */
 function fmtBRL(minor: number): string {
   return `R$ ${(minor / 100).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 function fmtUSD(units: number): string {
   return `US$ ${units.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+function fmtEUR(units: number): string {
+  return `€ ${units.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 /** Decorative upward growth motif for the (empty) investimento card — gives it life without an image.
@@ -47,6 +51,7 @@ function InvestimentoArt() {
 type Card = {
   title: string;
   amount: string | null; // null => "em breve"
+  amount2?: string; // secondary currency line (EURC € under the US$ stablecoin total)
   coins: CurrencyCode[];
   accent: "gold" | "emerald" | "sky";
   sub: string;
@@ -55,8 +60,16 @@ type Card = {
 
 export function WalletCards({ balances }: { balances: Record<string, number> }) {
   const stableUsd = (balances.USDT ?? 0) / 1e6 + (balances.USDC ?? 0) / 1e6;
+  const stableEur = (balances.EURC ?? 0) / 1e6;
   const cards: Card[] = [
-    { title: "Carteira stablecoin", amount: fmtUSD(stableUsd), coins: ["USDT", "USDC"], accent: "gold", sub: "USDT · USDC" },
+    {
+      title: "Carteira stablecoin",
+      amount: fmtUSD(stableUsd),
+      ...(stableEur > 0 ? { amount2: fmtEUR(stableEur) } : {}),
+      coins: stableEur > 0 ? ["USDT", "USDC", "EURC"] : ["USDT", "USDC"],
+      accent: "gold",
+      sub: stableEur > 0 ? "USDT · USDC · EURC" : "USDT · USDC",
+    },
     { title: "Carteira fiat", amount: fmtBRL(balances.BRLA ?? 0), coins: ["BRL"], accent: "emerald", sub: "BRL" },
     { title: "Carteira investimento", amount: null, coins: [], accent: "sky", sub: "Renda sobre o seu saldo, em breve", decoration: <InvestimentoArt /> },
   ];
@@ -76,6 +89,11 @@ export function WalletCards({ balances }: { balances: Record<string, number> }) 
             {c.amount ? (
               <div className="mt-2.5 font-display text-[26px] font-bold tracking-[-0.025em] tabular-nums text-warm-100">
                 {c.amount}
+                {c.amount2 && (
+                  <span className="ml-2 align-middle font-sans text-[15px] font-semibold text-warm-300">
+                    + {c.amount2}
+                  </span>
+                )}
               </div>
             ) : (
               <div className="mt-2.5 inline-flex rounded-full bg-ink-700 px-2.5 py-1 text-xs font-semibold text-warm-400">
