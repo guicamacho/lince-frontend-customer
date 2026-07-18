@@ -252,6 +252,8 @@ function MemberRow({
   // Step-up recovery (F8): transfer-ownership is step-up-gated on the backend; the wrapper
   // opens Clerk's re-auth modal and retries instead of dead-ending on the 403 copy.
   const transferWithStepUp = useReverification(transferOwnershipAction);
+  // Role changes are step-up-gated too (Cluster 2) — same re-auth-and-retry treatment.
+  const changeRoleWithStepUp = useReverification(changeRoleAction);
 
   function run(fn: () => Promise<{ ok: true } | { error: string }>) {
     setError(null);
@@ -340,7 +342,7 @@ function MemberRow({
                 value={primaryRole}
                 disabled={pending || member.status !== "active"}
                 ariaLabel={`Papel de ${member.name}`}
-                onChange={(r) => run(() => changeRoleAction(member.personId, r))}
+                onChange={(r) => run(() => changeRoleWithStepUp(member.personId, r))}
               />
               {member.status === "invited" && (
                 <Button

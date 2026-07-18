@@ -20,6 +20,7 @@ const RAIL_ERROR_PT: Record<string, string> = {
   invalid_wallet_address: "Endereço de carteira inválido para a rede escolhida.",
   mfa_required: "Ative a verificação em duas etapas em Configurações para cadastrar beneficiários.",
   forbidden: "Seu papel não permite cadastrar beneficiários. Fale com um administrador da conta.",
+  money_out_held: "Por segurança, alterações de beneficiários ficam temporariamente bloqueadas após a recuperação da conta. Tente novamente mais tarde.",
 };
 
 export async function createBeneficiaryAction(

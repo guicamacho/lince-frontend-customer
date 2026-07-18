@@ -36,6 +36,7 @@ function friendlyError(code: string): { message: string; action?: "mfa" } {
     case "mfa_required": return { message: "Ative a verificação em duas etapas (2FA) para converter.", action: "mfa" };
     case "invalid_amount": return { message: "Valor inválido." };
     case "unsupported_pair": return { message: "Conversão indisponível para este par." };
+    case "money_out_held": return { message: "Por segurança, envios ficam temporariamente bloqueados após a recuperação da conta. Tente novamente mais tarde." };
     case "avenia_unavailable":
     case "mfa_check_unavailable": return { message: "Serviço indisponível no momento. Tente novamente." };
     default: return { message: "Não foi possível concluir a conversão. Tente novamente." };

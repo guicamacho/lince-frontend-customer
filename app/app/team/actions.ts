@@ -23,6 +23,7 @@ const MESSAGES: Record<string, string> = {
   cannot_transfer_to_self: "Você já é o proprietário.",
   not_owner: "Somente o proprietário pode transferir a propriedade.",
   step_up_required: "Confirme sua identidade novamente para concluir esta ação.",
+  mfa_required: "Ative a verificação em duas etapas em Configurações para alterar papéis.",
   member_not_invited: "Este membro já aceitou o convite.",
   invite_cooldown: "Aguarde um momento antes de enviar outro convite para este e-mail.",
 };
@@ -44,8 +45,14 @@ export async function resendInvitationAction(
   return { error: msg(res.error), cooldown: res.error === "invite_cooldown" };
 }
 
-export async function changeRoleAction(personId: string, role: string): Promise<ActionResult> {
+/** Role changes are step-up-gated on the backend (Cluster 2): step_up_required -> Clerk
+ *  reverification hint, so the manager's wrapper re-auths and retries. */
+export async function changeRoleAction(
+  personId: string,
+  role: string,
+): Promise<ActionResult | ReturnType<typeof reverificationError>> {
   const res = await changeTeamMemberRole(personId, role);
+  if (!res.ok && res.error === "step_up_required") return reverificationError("strict");
   return res.ok ? { ok: true } : { error: msg(res.error) };
 }
 
