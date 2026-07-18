@@ -134,6 +134,12 @@ export async function getMe(): Promise<Result<Me>> {
   return toResult<Me>(await authedFetch("/app/me"));
 }
 
+/** Voluntary closure (PRD-01 §13.1): owner-only, step-up-gated; 422 when balance or
+ *  in-flight transactions block it. */
+export async function closeAccount(): Promise<Result<{ closedAt: string }>> {
+  return toResult<{ closedAt: string }>(await authedFetch("/app/closure", { method: "POST" }));
+}
+
 // --- Equipe (PRD-03): list, invite, role change, remove, transfer. Authorization is
 //     server-side; the UI only hides controls the backend would 403 anyway. ---
 export type AccessRole = "owner" | "admin" | "finance" | "viewer";

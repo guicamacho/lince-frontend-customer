@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PasswordForm, ActiveSessions } from "@/components/app/account-settings";
 import { MfaSettings } from "@/components/app/mfa-settings";
+import { CloseAccount } from "@/components/app/close-account";
 
 // Configurações — Lince-owned settings surface (product decision 2026-07-09: Clerk's
 // user-settings modal is hidden; account management grows here instead).
@@ -60,6 +61,13 @@ export default async function SettingsPage() {
           </SignOutButton>
         </div>
       </Card>
+
+      {me.ok && me.data.roles.includes("owner") && (
+        <Card className="gap-4 border-clay-500/20 p-6">
+          <h2 className="font-medium text-warm-200">Encerrar conta</h2>
+          <CloseAccount />
+        </Card>
+      )}
 
       <p className="text-xs text-warm-500">
         Precisa alterar dados da empresa? Fale com nosso suporte pelos Avisos.

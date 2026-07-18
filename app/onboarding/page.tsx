@@ -111,6 +111,15 @@ export default async function OnboardingPage() {
             <p className="text-warm-300">Infelizmente sua conta não foi aprovada neste momento.</p>
           </Screen>
         )}
+
+        {state?.state === "closed" && (
+          <Screen title="Conta encerrada">
+            <p className="text-warm-300">
+              A conta da sua empresa na Lince foi encerrada. Os registros exigidos por lei permanecem
+              guardados pelo prazo legal. Se precisar de algo, fale com nosso suporte.
+            </p>
+          </Screen>
+        )}
       </main>
     </div>
   );
