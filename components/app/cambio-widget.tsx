@@ -72,7 +72,9 @@ export function CambioWidget({ initial }: { initial: Rates | null }) {
         <Pair title="BRL / EUR" flag={<PairFlags a={<BrlFlag />} b={<EurFlag />} />} buy={rates?.brlEur.buy ?? null} />
       </div>
       <p className="mt-3 text-[11px] leading-snug text-warm-500">
-        Taxas de referência (sem tarifas). O valor final é confirmado no momento da operação.
+        {rates?.differentiated
+          ? "Suas taxas — incluem a margem acordada para sua conta. O valor final é confirmado no momento da operação."
+          : "Taxas de referência (sem tarifas). O valor final é confirmado no momento da operação."}
       </p>
     </div>
   );

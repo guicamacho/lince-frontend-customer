@@ -116,6 +116,8 @@ export interface Rates {
   brlUsd: { buy: number | null; sell: number | null; mid: number | null };
   brlEur: { buy: number | null; mid: number | null };
   updatedAt: string;
+  /** PRD-09: true when the org's spread schedule is applied to these numbers (flag-gated). */
+  differentiated?: boolean;
 }
 export async function getRates(): Promise<Rates | null> {
   const res = await authedFetch("/app/rates");
