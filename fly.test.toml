@@ -1,0 +1,27 @@
+# lince-customer-test — TEST tier customer app (staging branch, sandbox backend).
+app = "lince-customer-test"
+primary_region = "gru"
+
+[build]
+  [build.args]
+    # Same dev Clerk instance as the dev tier (test is sandbox-keyed and disposable).
+    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "pk_test_Z2xvd2luZy10ZWFsLTY0LmNsZXJrLmFjY291bnRzLmRldiQ"
+
+[env]
+  NODE_ENV = "production"
+  PORT = "3000"
+  # Server-to-server over Fly 6PN to the TEST backend.
+  LINCE_API_URL = "http://lince-api-test.internal:3000"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[http_service.checks]]
+  path = "/api/health"
+  interval = "15s"
+  timeout = "3s"
+  grace_period = "10s"
