@@ -30,6 +30,8 @@ function friendlyError(code: string): { message: string; action?: "mfa" } {
     case "invalid_amount": return { message: "Valor inválido." };
     case "beneficiary_incomplete": return { message: "Cadastro do beneficiário incompleto para envio. Cadastre-o novamente com os dados bancários completos (banco e endereço)." };
     case "beneficiary_not_found":
+    case "beneficiary_reverification_pending":
+      return { message: "Beneficiário em verificação após alteração de dados. Aguarde a confirmação da nossa equipe." };
     case "beneficiary_disabled":
     case "unsupported_rail": return { message: "Beneficiário indisponível para pagamento. Verifique o cadastro." };
     case "money_out_held": return { message: "Por segurança, envios ficam temporariamente bloqueados após a recuperação da conta. Tente novamente mais tarde." };
@@ -40,7 +42,10 @@ function friendlyError(code: string): { message: string; action?: "mfa" } {
 }
 
 export function PayoutForm({ balances, payees }: { balances: Record<string, number>; payees: Beneficiary[] }) {
-  const payable = useMemo(() => payees.filter((p) => p.rail && RAILS[p.rail]), [payees]);
+  const payable = useMemo(
+    () => payees.filter((p) => p.rail && RAILS[p.rail] && p.verification_status !== "changed_pending"),
+    [payees],
+  );
   const [payeeId, setPayeeId] = useState<string | null>(payable.length === 1 ? payable[0]!.id : null);
   const [amount, setAmount] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -138,7 +143,8 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
         <div className="mt-2 space-y-2" role="radiogroup" aria-label="Escolha o beneficiário">
           {payees.map((p) => {
             const info = p.rail ? RAILS[p.rail] : undefined;
-            if (!info) {
+            const inReverification = p.verification_status === "changed_pending";
+            if (!info || inReverification) {
               return (
                 <div key={p.id} aria-disabled="true"
                   className="flex min-h-14 w-full cursor-default items-center gap-3 rounded-2xl bg-ink-900/50 p-3.5 opacity-60 ring-1 ring-foreground/10 select-none">
@@ -150,7 +156,7 @@ export function PayoutForm({ balances, payees }: { balances: Record<string, numb
                     <span className="block truncate text-xs text-warm-500">{p.payee_legal_name}</span>
                   </span>
                   <span className="ml-auto shrink-0 rounded-full bg-ink-700 px-2 py-0.5 font-mono text-[10px] font-bold tracking-wide text-warm-500 uppercase">
-                    Não disponível para envio
+                    {inReverification ? "Em verificação" : "Não disponível para envio"}
                   </span>
                 </div>
               );

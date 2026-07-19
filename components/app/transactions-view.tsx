@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import type { Transaction, TxType } from "@/lib/lince-api";
 import { cn } from "@/lib/utils";
+import { ReportProblem } from "@/components/app/report-problem";
 
 /**
  * Customer Transações list + client-side CSV export (F3). Reuses the home tx-table visual contract
@@ -339,6 +340,7 @@ function SortButton({
 function TxDetail({ t }: { t: Transaction }) {
   const q = t.quote;
   return (
+    <div className="space-y-4">
     <div className="grid gap-5 sm:grid-cols-2">
       <div>
         <div className="mb-2 text-[11px] uppercase tracking-wide text-warm-500">Taxas</div>
@@ -377,6 +379,8 @@ function TxDetail({ t }: { t: Transaction }) {
           </dl>
         </div>
       )}
+    </div>
+    <ReportProblem transactionId={t.id} />
     </div>
   );
 }

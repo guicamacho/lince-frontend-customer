@@ -1,7 +1,7 @@
 "use server";
 
 import { reverificationError } from "@clerk/nextjs/server";
-import { createBeneficiary, type CreateBeneficiaryInput } from "@/lib/lince-api";
+import { createBeneficiary, updateBeneficiary, type CreateBeneficiaryInput } from "@/lib/lince-api";
 
 // Backend rail-validation codes -> pt-BR. The backend (rails.validateBeneficiary) is the wall;
 // this maps its neutral codes. missing_<field>/invalid_<field> fall back to a generic line.
@@ -37,4 +37,24 @@ export async function createBeneficiaryAction(
     return { error: "Não foi possível salvar o beneficiário. Tente novamente." };
   }
   return { ok: true };
+}
+
+/** Edit a payee. Destination replacements come back as 'changed_pending' — the UI explains
+ *  the re-verification pause. step_up_required -> Clerk re-auth + retry like create. */
+export async function updateBeneficiaryAction(
+  id: string,
+  input: { label?: string; payeeLegalName?: string; network?: string; destination?: Record<string, string> },
+): Promise<{ ok: true; verificationStatus: string } | { error: string } | ReturnType<typeof reverificationError>> {
+  const res = await updateBeneficiary(id, input);
+  if (!res.ok) {
+    if (res.error === "step_up_required") return reverificationError("strict");
+    if (RAIL_ERROR_PT[res.error]) return { error: RAIL_ERROR_PT[res.error] };
+    if (res.error === "beneficiary_not_found") return { error: "Beneficiário não encontrado." };
+    if (res.error === "invalid_label") return { error: "Informe um apelido válido." };
+    if (res.error === "missing_payeeLegalName") return { error: "Informe o nome do beneficiário." };
+    if (res.error.startsWith("missing_")) return { error: "Preencha todos os campos obrigatórios." };
+    if (res.error.startsWith("invalid_") || res.error.startsWith("too_long_")) return { error: "Verifique os dados informados." };
+    return { error: "Não foi possível salvar as alterações. Tente novamente." };
+  }
+  return { ok: true, verificationStatus: res.data.verificationStatus };
 }

@@ -6,6 +6,7 @@
  */
 
 export const CASE_TYPE_LABEL: Record<string, string> = {
+  customer_dispute: "Contestação",
   rfi_relay: "Solicitação de informações",
   kyb_completeness: "Complemento de cadastro",
 };

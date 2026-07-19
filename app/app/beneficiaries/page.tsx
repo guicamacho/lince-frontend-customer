@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listBeneficiaries, getMe } from "@/lib/lince-api";
 import { BeneficiaryGate } from "@/components/app/beneficiary-gate";
 import { assetMark } from "@/components/app/currency-marks";
@@ -41,6 +42,7 @@ export default async function BeneficiariesPage() {
                 <th className="px-4 py-3 font-medium">Rail</th>
                 <th className="px-4 py-3 font-medium">Destino</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3"><span className="sr-only">Ações</span></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-ink-500">
@@ -64,8 +66,20 @@ export default async function BeneficiariesPage() {
                   <td className="px-4 py-3">
                     {b.verification_status === "verified" ? (
                       <span className="text-xs text-emerald-500">Verificado</span>
+                    ) : b.verification_status === "changed_pending" ? (
+                      <span className="text-xs text-gold-500">Em verificação</span>
                     ) : (
                       <span className="text-xs text-warm-400">Aguardando verificação</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {canManage && (
+                      <Link
+                        href={`/app/beneficiaries/${b.id}`}
+                        className="text-xs text-warm-400 underline-offset-2 hover:text-warm-200 hover:underline"
+                      >
+                        Editar
+                      </Link>
                     )}
                   </td>
                 </tr>

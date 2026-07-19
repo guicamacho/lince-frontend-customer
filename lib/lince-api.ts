@@ -266,6 +266,22 @@ export async function lookupCnpj(
   );
 }
 
+/** PATCH /app/beneficiaries/:id — label/name edits apply in place; a `destination`
+ *  (or crypto `network`) replacement resets the payee to 'changed_pending' (§13.2). */
+export async function updateBeneficiary(
+  id: string,
+  input: { label?: string; payeeLegalName?: string; network?: string; destination?: Record<string, string> },
+): Promise<Result<{ id: string; verificationStatus: string }>> {
+  return toResult<{ id: string; verificationStatus: string }>(
+    await authedFetch(`/app/beneficiaries/${id}`, { method: "PATCH", body: JSON.stringify(input) }),
+  );
+}
+
+/** Dispute intake (PRD-04 §13.1): report a problem on one of the org's transactions. */
+export async function createDispute(input: { transactionId: string; message: string }): Promise<Result<{ caseId: string }>> {
+  return toResult<{ caseId: string }>(await authedFetch("/app/disputes", { method: "POST", body: JSON.stringify(input) }));
+}
+
 export interface Beneficiary {
   id: string;
   label: string;
